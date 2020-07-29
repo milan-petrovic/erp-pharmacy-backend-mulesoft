@@ -1,0 +1,3234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+    <http:listener-config name="erp-apoteka-api-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" protocol="HTTP" />
+        <http:listener-interceptors>
+            <http:cors-interceptor>
+                <http:origins>
+                    <http:origin url="http://localhost:3000" accessControlMaxAge="30000">
+                        <http:allowed-methods>
+                            <http:method methodName="GET" />
+                            <http:method methodName="POST" />
+                            <http:method methodName="DELETE" />
+                            <http:method methodName="OPTIONS" />
+                            <http:method methodName="PUT" />
+                        </http:allowed-methods>
+                        <http:allowed-headers>
+                            <http:header headerName="Content-Type" />
+                            <http:header headerName="Access-Control-Allow-Headers" />
+                            <http:header headerName="Access-Control-Allow-Origin" />
+                        </http:allowed-headers>
+                        <http:expose-headers />
+                    </http:origin>
+                </http:origins>
+            </http:cors-interceptor>
+        </http:listener-interceptors>
+    </http:listener-config>
+    <apikit:config name="erp-apoteka-api-config" api="erp-apoteka-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <db:config name="Erp_Apoteka_Database_Config" doc:name="Database Config" doc:id="cfd7b418-2572-49ae-846d-4f48645def5f">
+        <db:my-sql-connection host="localhost" port="3306" user="root" password="root123" database="apoteka" />
+    </db:config>
+    <sub-flow name="findRacunById" doc:id="52f51878-f569-4322-b02e-0ab018bce20a">
+        <try doc:name="Try" doc:id="54857f39-d903-400d-a144-fe78fca6fda0">
+            <logger level="INFO" doc:name="Logger" doc:id="d0a3f509-c8df-4757-9798-1fb9dc156906" message="Iscitavanje racuna po id iz baze podataka" />
+            <db:select doc:name="Select" doc:id="20efce12-81a0-4eb7-981e-51f8faee1ee4" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from racuni where racun_id=:racunId</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"racunId": attributes.uriParams.racunId
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8389db9e-c453-4977-93e1-51a2c639841a" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="2775266e-4bff-40a9-9bab-fe1d336a7f50">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findAllRacuni" doc:id="41beffb0-8c38-422a-b3c7-e0d0eb657df5">
+        <try doc:name="Try" doc:id="0c83d352-e361-4532-bd92-df06242fa587">
+            <logger level="INFO" doc:name="Logger" doc:id="7b619f8a-45d6-4c75-80a2-3279bd55629b" message="Iscitavanje svih racuna" />
+            <db:select doc:name="Select" doc:id="c103816e-83b4-47c1-a178-7c31f5ab863f" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from racuni</db:sql>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3c017485-985a-4b4d-819a-fb7313609fd0">
+                    <ee:transform doc:name="Transform Message" doc:id="82787d58-2142-4381-8aea-5b1961ba7b5a">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findReceptById" doc:id="a568641a-f14a-476e-b4d5-cf35302dfda2">
+        <try doc:name="Try" doc:id="aeee25c0-b4e6-4cb1-b887-050d2b84d705">
+            <logger level="INFO" doc:name="Logger" doc:id="7b0e61a8-9d55-416a-97c0-f0a017aedf97" message="Iscitavanje recepta po id iz baze" />
+            <db:select doc:name="Select" doc:id="cc4a23db-6a57-4d1a-b4c4-5e55eb855cdc" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from recepti where recept_id=:receptId</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"receptId":attributes.uriParams.receptId
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="21cadd85-013f-4070-a61a-52ed66820da0" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="c31b4f37-d78d-4aad-9141-b1b1076bf4d9">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findAllRecepti" doc:id="8bdd4da0-1cab-4bb3-ade7-c5cd0c7e9039">
+        <try doc:name="Try" doc:id="1533e33f-b731-4f34-8c29-b2e4d39e0e52">
+            <logger level="INFO" doc:name="Logger" doc:id="8c7e511a-2096-45cf-9d69-545e09b50456" message="Iscitavanje svih recepata iz DB" />
+            <db:select doc:name="Select" doc:id="f1f3628e-1bd1-4305-b13d-ddf4cfa22f33" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from recepti</db:sql>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d14a219c-c8d2-4d40-81f3-5aeadac021f8" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="bd99bf5b-88df-41b0-a7b6-99ede8380954">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findPacijentBySifraZdravstvene" doc:id="136940f4-6d00-4544-884c-22f2cd3a792f">
+        <try doc:name="Try" doc:id="8d9f6108-20fa-4c10-a8b2-138293a38fee">
+            <logger level="INFO" doc:name="Logger" doc:id="ca4c7a5e-f9c3-40b2-b57e-5cf426016951" message="Iscitavanje pacijenta po sifri zdravstvene iz DB" />
+            <db:select doc:name="Select" doc:id="934d7ae6-84c0-48bf-8c15-8442ebe9c44e" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from pacijenti where sifra_zdravstvene=:sifraZdravstvene</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"sifraZdravstvene": vars.sifraZdravstvene
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7ea33670-1ca4-4e93-9da8-1274d3e32959" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="bc9ad7b4-b9bb-43ea-8e25-6e2537a4a8e9">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findPacijentById" doc:id="f77bee7e-a8c7-4e57-8da4-52bc602267e7">
+        <try doc:name="Try" doc:id="c9c86aed-bd40-487c-9bc1-157f93737b84">
+            <logger level="INFO" doc:name="Logger" doc:id="7c01a811-d7bc-42fe-a37a-755d7c372cb7" message="Iscitavanje pacijenta po id iz DB" />
+            <db:select doc:name="Select" doc:id="6e55389c-a61c-4e32-a811-d638c992da27" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from pacijenti where pacijent_id=:pacijentId</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"pacijentId":attributes.uriParams.pacijentId
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3b438482-095c-4636-968c-31bf99803658" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="1e764843-7d14-4a0a-b32b-fd0644b7e66e">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findAllPacijenti" doc:id="25ff4844-7ae2-40e6-9e02-a2dbb5bc6160">
+        <try doc:name="Try" doc:id="3f06596b-d8e4-49aa-9c6d-d2c11d66700e">
+            <logger level="INFO" doc:name="Logger" doc:id="293eb9af-bc4e-4d43-8762-851d8c58fa5d" message="Iscitavanje svih pacijenata iz DB" />
+            <db:select doc:name="Select" doc:id="2b841bd0-0d5b-43dd-b778-451104acd9c9" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from pacijenti</db:sql>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="635327b0-40f8-4195-ad9a-c733183d11c2" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="a0258911-2c00-4548-b680-27eb60e672bb">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findAllLijekovi" doc:id="30b3975c-f870-4b8e-8e46-513da018cb86">
+        <try doc:name="Try" doc:id="6d8ed9c5-d62f-46fc-a992-46c0d77c5082">
+            <logger level="INFO" doc:name="Logger" doc:id="004c4b0a-914b-4f50-801d-db8ea78f0800" message="Iscitavanje svih lijekova iz DB" />
+            <db:select doc:name="Select" doc:id="2bbf217b-a232-4c76-b131-e1a62646dba6" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from lijekovi;</db:sql>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="24a237d8-7388-4e77-8528-cd6f56587888" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="7db0c7eb-c012-470d-b3ee-5818695c3723">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findLijekByNaziv" doc:id="55943dad-a25d-43e7-8349-9ea5d0f9db88">
+        <try doc:name="Try" doc:id="9e8248bd-2006-414f-8671-4cd279e3e071">
+            <logger level="INFO" doc:name="Logger" doc:id="c6769ffc-6b76-42c4-bc2d-210c5669f359" message="Iscitavanje lijeka po nazivu iz baze" />
+            <db:select doc:name="Select" doc:id="42780e8a-02d4-4b44-9360-1a324080b330" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from lijekovi where naziv=:naziv</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"naziv": vars.naziv,
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3169f02e-4ebd-4cb1-813d-86a962eac6c2" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="d0e1b81f-a879-4065-88f9-a5600f07d3ff">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findLijekById" doc:id="e747aefd-9430-441a-a9bb-01fbf1832838">
+        <try doc:name="Try" doc:id="78e4db04-85fc-4f14-b5d3-7c915469a791">
+            <logger level="INFO" doc:name="Logger" doc:id="7dcd8c2a-db57-4d5e-91fe-30ad38d4bada" message="Iscitavanje lijeka po id" />
+            <db:select doc:name="Select" doc:id="9c67193c-6a93-4c1e-b44a-152a4bdc2d58" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from lijekovi where lijek_id=:lijekId</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"lijekId":attributes.uriParams.lijekId
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="dd85e1e2-ad5b-402a-8243-199d2f586f43" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="934cce62-5672-4456-b63f-59e646207c93">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findNacinPlacanjaById" doc:id="cf08764c-0ab9-4bd1-ae5f-34205e44f05d">
+        <try doc:name="Try" doc:id="2de8267d-0fb1-4b82-9415-69f50311d737">
+            <logger level="INFO" doc:name="Logger" doc:id="d69feec7-c66b-469d-8158-90af4ade771e" message="Iscitavanje nacina placanja po id iz baze" />
+            <db:select doc:name="Select" doc:id="a01bd933-e722-4c5c-bb92-f6aca1ddd466" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from nacini_placanja where nacin_placanja_id=:nacinPlacanjaId</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"nacinPlacanjaId": attributes.uriParams.nacinPlacanjaId
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="56c1c0a0-cb77-457d-a1d1-5178585ed267" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="951afdd5-b976-4182-99a2-b342b64115ea">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findNacinPlacanjaByNaziv" doc:id="597cba87-1870-4443-a106-fb1285bb2f11">
+        <try doc:name="Try" doc:id="e5a48799-f25f-471c-a415-f673d5c62d80">
+            <logger level="INFO" doc:name="Logger" doc:id="21216e6c-ec73-4121-b7a6-07febaa989b0" message="Iscitavanje nacina placanja iz baze po nazivu" />
+            <db:select doc:name="Select" doc:id="6d77850c-266b-4da1-b184-e88cbc020684" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from nacini_placanja where naziv=:nacinPlacanjaNaziv</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"nacinPlacanjaNaziv":vars.naziv
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="6c8b801e-6e77-437f-b517-8e73a5bc3185" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="5b0970c6-bab7-45b3-a501-29c9136aa7b8">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findKategorijaByNaziv" doc:id="9da37d8b-c8dc-4766-9734-cdc88587e0c4">
+        <try doc:name="Try" doc:id="6ab4d6f3-4789-4ec8-859d-312747c2cc7b">
+            <logger level="INFO" doc:name="Logger" doc:id="bca82dde-89c4-4f3a-ad9c-e3a334514a44" message="Iscitavanje kategorije po nazivu" />
+            <db:select doc:name="Select" doc:id="4d273ffb-d4b8-4a67-8233-948592b3cb0b" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from kategorije where naziv=:naziv</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"naziv":vars.naziv
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9031ef52-93d7-4d17-b161-8e43b4b4d668" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="68689405-943e-4479-8c26-4d307bcdc959">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findKategorijaById" doc:id="2bed248e-bec1-42d6-baa6-8d6c9cb6e7cf">
+        <try doc:name="Try" doc:id="94fe5b2e-a5be-4d62-96c8-9f824f23d322">
+            <logger level="INFO" doc:name="Logger" doc:id="2df83869-350a-49c8-bbe1-d7ccf3fb1f7d" message="Iscitavanja kategorije po id iz baze" />
+            <db:select doc:name="Select" doc:id="eec16fef-9e91-4b16-865d-65ea41c66919" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from kategorije where kategorija_id=:kategorijaId</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"kategorijaId":attributes.uriParams.kategorijaId
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d9ce4727-0406-41d3-8a9f-0ac7201e819a" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="d572e898-ad94-438c-a51d-ab0e96f15827">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findAllKategorije" doc:id="ef3499eb-d0d6-44a6-bf20-1c6ca4dda0cf">
+        <try doc:name="Try" doc:id="2c7872c9-938a-40f0-b6e6-4114c0174d6e">
+            <logger level="INFO" doc:name="Logger" doc:id="f73729b4-9946-4dca-9203-d354748ff223" message="Iscitavanje kategorija iz baze" />
+            <db:select doc:name="Select" doc:id="153a4351-6bfd-47a4-88bf-7463a414b93a" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from kategorije</db:sql>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="69208948-be46-4734-baf2-b4148bed7067" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="df2e4fe5-c893-431a-a419-bce3a77df6f5">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findFarmaceutById" doc:id="9a2f4cdd-d2ef-4746-948a-d1835485a04b">
+        <try doc:name="Try" doc:id="543b967f-33e2-40ab-89b5-6d5f99fddafe">
+            <logger level="INFO" doc:name="Logger" doc:id="8538cb7f-e4f2-440b-9363-bdd169bf49d6" message="Isccitavanje farmaceuta po id iz DB" />
+            <db:select doc:name="Select" doc:id="98db8756-499e-402c-be0b-7824d3c12577" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from farmaceuti where farmaceut_id=:farmaceutId</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"farmaceutId":vars.farmaceutId
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="29bc5386-0fee-416a-8554-5e3f63c96439" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION, EXPRESSION">
+                    <ee:transform doc:name="Transform Message" doc:id="e7ea5635-b584-491e-b7a6-de3b3fe5b373">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findAllFarmaceuti" doc:id="3edaca81-0e10-46d9-8ee6-2c5ed236f3e7">
+        <try doc:name="Try" doc:id="229936ca-9ae1-4535-8166-eab214001f09">
+            <logger level="INFO" doc:name="Logger" doc:id="1f0973fa-15d3-4d34-bf1a-db267776ed15" message="Iscitavanje farmaceuta iz baze" />
+            <db:select doc:name="Select" doc:id="522cbf22-a475-4809-9bf1-7f7659bfb75c" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from farmaceuti</db:sql>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0dac8fc5-025a-4141-9c88-9b3898977c94" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION, EXPRESSION">
+                    <ee:transform doc:name="Transform Message" doc:id="5e93a5ba-d630-4d36-a3b3-083f31c20513">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findAdminById" doc:id="35f141ce-731e-40e0-847f-d8e79649aead">
+        <try doc:name="Try" doc:id="663d4c06-5703-4b07-a995-18863416e2fe">
+            <logger level="INFO" doc:name="Logger" doc:id="b244053a-1409-4845-b262-841c6df89503" message="Pocetak iscitavanja admina po id iz DB" />
+            <db:select doc:name="Select admin by id" doc:id="6382ddac-211c-4977-ae02-8d9a6cb75cd8" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from admini where admin_id=:adminId</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"adminId":vars.adminId
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4a105267-12fb-4e3a-a5d8-67e61918d11b">
+                    <ee:transform doc:name="Transform Message" doc:id="152f16a3-69b7-40fc-9d96-60929fce81db">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findAllAdmini" doc:id="339696e9-a81d-4c9c-987f-930d13eafd5a">
+        <try doc:name="Try" doc:id="93bde1a8-2aeb-474d-a5ea-c1bc153d73f2">
+            <logger level="INFO" doc:name="Logger" doc:id="a9814763-5d04-4f5d-a2b3-9a0aa1ddeb95" message="Pocetak icitavanja admina iz baze" />
+            <db:select doc:name="Select all from table admini" doc:id="7d25c3fd-aacf-407e-8aa4-4186e49be559" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from admini</db:sql>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="a891ddf5-3360-4e30-bc12-8102399e495b" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION">
+                    <ee:transform doc:name="Transform Message" doc:id="01597456-e8ff-482e-a4e2-98deb9bc5164">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findAdminByUsername" doc:id="7bc3e220-36ae-4b9e-9720-7fa91d0ac5b0">
+        <try doc:name="Try" doc:id="9d1f7553-c520-4b48-9b6a-48b616e791b4">
+            <logger level="INFO" doc:name="Logger" doc:id="521dc44c-0c09-46c4-91c0-c6e70bc17c18" message="Pocetak iscitavanja admina po username" />
+            <db:select doc:name="Select" doc:id="98bc706d-ca7d-4bc4-8153-c4526ba8057c" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from admini where username=:username</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"username":vars.username
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9a4ca9d7-6961-4807-879b-8528d9497e49" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION">
+                    <ee:transform doc:name="Transform Message" doc:id="c4ed2582-3222-4c27-8980-8ff661b8eb82">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message:error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findFarmaceutByBrojDozvole" doc:id="94851190-62ce-44ca-9bcc-ea0f91c091d7">
+        <try doc:name="Try" doc:id="21f17818-4d59-45ab-8d85-ac284c427f73">
+            <logger level="INFO" doc:name="Logger" doc:id="2cfc2070-414d-487b-af7c-f5231b49674a" />
+            <db:select doc:name="Select" doc:id="2d72cbf9-cc35-4090-91bd-3e1ce1bc7a2a" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from farmaceuti where broj_dozvole=:brojDozvole</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"brojDozvole":vars.brojDozvole
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="80fe513a-b173-4ad9-b5cb-d749c7d7f206" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="ab09cf72-f047-45e8-9727-c55eb70bc0b2">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <sub-flow name="findAdminByEmail" doc:id="18e070a6-7c6a-40f6-8115-a53fc076fc3c">
+        <try doc:name="Try" doc:id="bc3eb84d-82c7-4b65-b6f3-dc4633878a5c">
+            <logger level="INFO" doc:name="Logger" doc:id="976540c8-c7a3-4e5d-ad8f-8f77cca4fa8f" message="Pocetak iscitavanja admina po emailu" />
+            <db:select doc:name="Select" doc:id="a8588142-ee97-4a88-bc43-8856af1eeb41" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>select * from admini where email=:email</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"email":vars.email
+}]]]></db:input-parameters>
+            </db:select>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="a0d0468c-b2c1-443a-9942-bed5e42535f1" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="14de86ac-ed8f-4e60-9277-28394d0e9802">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </sub-flow>
+    <flow name="erp-apoteka-api-main">
+        <http:listener config-ref="erp-apoteka-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="erp-apoteka-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	status: 500,
+	message: "Bad request"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[400]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="erp-apoteka-api-console">
+        <http:listener config-ref="erp-apoteka-api-httpListenerConfig" path="/console/*">
+            <ee:repeatable-file-store-stream bufferUnit="MB" />
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="erp-apoteka-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\admini:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="put:\admini:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="Set Variable" doc:id="f4e9d7b7-1f42-442b-bc8a-a0c96b951307" variableName="object" />
+        <set-variable value="#[payload.username]" doc:name="updatedUsername" doc:id="b8e0dd74-36a2-4589-9665-2a5b086edc78" variableName="username" />
+        <set-variable value="#[payload.email]" doc:name="updatedEmail" doc:id="daa6fed9-1f46-42ce-ac1d-f70fc27ad549" variableName="email" />
+        <flow-ref doc:name="findAdminByUsername" doc:id="945c9edf-a958-4a3a-8441-637adebbc540" name="findAdminByUsername" />
+        <choice doc:name="Choice" doc:id="ff786733-3a50-461d-aec7-95278fe47eca">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <raise-error doc:name="Raise error" doc:id="689ca029-26b6-451d-8288-edfc22868e60" type="ADM:UPDATE_EXISTING_USERNAME" />
+            </when>
+            <otherwise>
+                <flow-ref doc:name="findAdminByEmail" doc:id="ebf0dcc9-32bd-4e03-b5cd-9f4b187a07e0" name="findAdminByEmail" />
+                <choice doc:name="Choice" doc:id="b5dd67aa-21a6-4dad-bac7-f0e0cd6b6b20">
+                    <when expression="#[sizeOf(payload) &gt; 0]">
+                        <raise-error doc:name="Raise error" doc:id="12a3e88d-8491-46ae-96fc-0aa9f1349e6c" type="ADM:UPDATE_EXISTING_EMAIL" />
+                    </when>
+                    <otherwise>
+                        <db:update doc:name="Update" doc:id="974c95a6-7dc9-4890-ac40-3065ed96b792" config-ref="Erp_Apoteka_Database_Config">
+                            <db:sql>update admini set username=:username, password=:password, email=:email where admin_id=:adminId</db:sql>
+                            <db:input-parameters><![CDATA[#[{
+	"adminId": vars.object.adminId, 
+	"username": vars.object.username,
+	"email": vars.object.email,
+	"password": vars.object.password,
+}]]]></db:input-parameters>
+                        </db:update>
+                        <ee:transform doc:name="Transform Message" doc:id="6e0e229a-2342-45ba-b363-8b15b1fa8c54">
+                            <ee:message>
+                                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	
+}]]></ee:set-payload>
+                            </ee:message>
+                            <ee:variables>
+                                <ee:set-variable variableName="httpStatus"><![CDATA[204]]></ee:set-variable>
+                            </ee:variables>
+                        </ee:transform>
+                    </otherwise>
+                </choice>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7ceaa8c1-7e26-4fa1-ac51-85034e1e1dc6" type="ADM:UPDATE_EXISTING_USERNAME">
+                <ee:transform doc:name="Transform Message" doc:id="902407bc-f4e4-4def-85b9-91872741b78e">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Username is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="f959fed4-f8b9-4234-a9b7-b10febb0655e" type="ADM:UPDATE_EXISTING_EMAIL">
+                <ee:transform doc:name="Transform Message" doc:id="b9e470a5-ca26-4f9a-841f-94e61faf9c86">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Email is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\farmaceuti:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="put:\farmaceuti:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var insertedObject" doc:id="666fb503-f857-4398-b2cf-bc1ded78d3ee" variableName="object" />
+        <set-variable value="#[payload.username]" doc:name="var username" doc:id="b596aa4a-da79-4c1c-8358-1b8bb72941c2" variableName="username" />
+        <set-variable value="#[payload.email]" doc:name="var email" doc:id="61486a91-aa3c-4d9c-be46-1295730eab43" variableName="email" />
+        <set-variable value="#[payload.brojDozvole]" doc:name="var brojDozvole" doc:id="a1320c26-14c4-4727-831e-38902d4e5346" variableName="brojDozvole" />
+        <flow-ref doc:name="findByUsername" doc:id="4ecc9a72-e48b-49ce-8782-d835819cc3b9" name="findAdminByUsername" />
+        <choice doc:name="Choice" doc:id="78d9f6b5-2a51-450d-b627-e973b64c0fec">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <raise-error doc:name="Raise error" doc:id="1c80ca0c-2f03-4b46-b645-d7c205d4aa97" type="FRM:PUT_EXISTING_USERNAME" />
+            </when>
+            <otherwise>
+                <flow-ref doc:name="findByEmail" doc:id="770f0772-1aa8-4daa-9693-32d0dcfc107b" name="findAdminByEmail" />
+                <choice doc:name="Choice" doc:id="b05e2947-c8e3-40b7-969a-b7259de9fd6d">
+                    <when expression="#[sizeOf(payload) &gt; 0]">
+                        <raise-error doc:name="Raise error" doc:id="5814087c-4092-44cb-8575-6527252735f6" type="FRM:PUT_EXISTING_EMAIL" />
+                    </when>
+                    <otherwise>
+                        <flow-ref doc:name="findByBrojDozvole" doc:id="a3f32398-53c0-48a8-8fae-ce6c14fa24b9" name="findFarmaceutByBrojDozvole" />
+                        <choice doc:name="Choice" doc:id="624cc289-344b-4896-b2b3-5a9cee42f8c3">
+                            <when expression="#[sizeOf(payload) &gt; 0]">
+                                <raise-error doc:name="Raise error" doc:id="e2aaf1ef-6c36-4c7b-8ffb-998c65884439" type="FRM:PUT_EXISTING_BROJDOZVOLE" />
+                            </when>
+                            <otherwise>
+                                <db:update doc:name="Update" doc:id="cc7f057a-d0df-42bc-ac84-0619c472b240" config-ref="Erp_Apoteka_Database_Config">
+                                    <db:sql>update farmaceuti set  username=:username, password=:password, email=:email, ime=:ime, prezime=:prezime, broj_dozvole:=broj_dozvole where farmaceut_id=:farmaceut_id</db:sql>
+                                    <db:input-parameters><![CDATA[#[{
+	"farmaceut_id":vars.object.farmaceutId,
+	"username": vars.object.username,
+	"password": vars.object.password,
+	"email": vars.object.email,
+	"ime": vars.object.ime,
+	"prezime": vars.object.prezime,
+	"broj_dozvole":vars.object.brojDozvole,
+}]]]></db:input-parameters>
+                                </db:update>
+                                <ee:transform doc:name="Transform Message" doc:id="fda66553-cae7-46a7-b3e0-38aae8dd66b4">
+                                    <ee:message>
+                                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 204,
+	"message": "No content"
+}]]></ee:set-payload>
+                                    </ee:message>
+                                    <ee:variables>
+                                        <ee:set-variable variableName="httpStatus"><![CDATA[204]]></ee:set-variable>
+                                    </ee:variables>
+                                </ee:transform>
+                            </otherwise>
+                        </choice>
+                    </otherwise>
+                </choice>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="691ec1ef-a73c-437b-a902-af78348ef8ce" type="FRM:PUT_EXISTING_USERNAME">
+                <ee:transform doc:name="Transform Message" doc:id="2610c36a-c361-4f9e-b70e-4dd72f67bf42">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Username is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ff7a769d-be5a-49cf-a822-61501db0f67e" type="FRM:PUT_EXISTING_EMAIL">
+                <ee:transform doc:name="Transform Message" doc:id="3d5d6de8-69e5-42f5-ac28-0e829f5e2c26">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Email is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1babdc92-2f5d-4773-8274-c7537f223e43" type="FRM:PUT_EXISTING_BROJDOZVOLE">
+                <ee:transform doc:name="Transform Message" doc:id="d3bc67d4-afdb-406b-8f9c-334021e01c80">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Existing broj dozvole"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\kategorije:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="put:\kategorije:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var insertedObject" doc:id="bd2cba2d-c698-4365-a808-a9b39c908ce8" variableName="object" />
+        <set-variable value="#[payload.naziv]" doc:name="var naziv" doc:id="cdcf2b3c-1257-4e3f-9b13-0adf2be4c858" variableName="naziv" />
+        <flow-ref doc:name="findKategorijaByNaziv" doc:id="95cbf124-fc7d-45f8-9781-7f193f3b47f0" name="findKategorijaByNaziv" />
+        <choice doc:name="Choice" doc:id="d9c3a2db-0fe6-4deb-a703-f2dedd6a2013">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <choice doc:name="Choice" doc:id="1c641bff-c813-4a32-9579-4548177972a8">
+                    <when expression="#[payload[0].kategorija_id != vars.object.kategorijaId]">
+                        <raise-error doc:name="Raise error" doc:id="6b71300e-06b7-4eca-a4a9-4f241680ab9c" type="KTG:PUT_EXISTING_NAZIV" />
+                    </when>
+                    <otherwise>
+                        <db:update doc:name="Update" doc:id="a2e2edaa-ed74-4d25-bf64-cd837b94ef8e" config-ref="Erp_Apoteka_Database_Config">
+                            <db:sql>update kategorije set naziv=:naziv, opis:=opis where kategorija_id=:kategorijaId</db:sql>
+                            <db:input-parameters><![CDATA[#[{
+	"kategorijaId": vars.object.kategorijaId,
+	"naziv": vars.object.naziv,
+	"opis": vars.object.opis,
+}]]]></db:input-parameters>
+                        </db:update>
+                        <ee:transform doc:name="Transform Message" doc:id="75fa0342-a4db-4b83-8cff-259455006018">
+                            <ee:message>
+                                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 204,
+	"message": "No content"
+}]]></ee:set-payload>
+                            </ee:message>
+                        </ee:transform>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <db:update doc:name="Update" doc:id="ddedb8d5-4066-424c-91c5-3dbef1108bf3" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>update kategorije set naziv=:naziv, opis=:opis where kategorija_id=:kategorija_id</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"kategorija_id": vars.object.kategorijaId,
+	"naziv": vars.object.naziv,
+	"opis": vars.object.opis
+}]]]></db:input-parameters>
+                </db:update>
+                <ee:transform doc:name="Transform Message" doc:id="5f151b4d-c714-48da-9665-d4774eb6094d">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="a08428cb-b589-425e-8a9e-fa88d710b1f5" type="KTG:PUT_EXISTING_NAZIV">
+                <ee:transform doc:name="Transform Message" doc:id="c0727cba-5f76-473f-9396-e71e66f42367">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Naziv is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\lijekovi:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="put:\lijekovi:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var editedObject" doc:id="b553d91f-1bf0-4dc8-b44f-03acd9d8b5cd" variableName="object" />
+        <set-variable value="#[payload.naziv]" doc:name="var naziv" doc:id="20388df6-0c2a-4a9f-bb3c-d80a76b8970a" variableName="naziv" />
+        <flow-ref doc:name="findLijekByNaziv" doc:id="51b1561d-e97f-4084-b56f-f66ac52ca7bf" name="findLijekByNaziv" />
+        <choice doc:name="Choice" doc:id="a1cbcfc8-4d1d-417f-8b94-9176696cd676">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <choice doc:name="Choice" doc:id="8de0a7c5-d2c8-490e-99d5-f340dbcf1a01">
+                    <when expression="#[payload[0].lijek_id != vars.object.lijekId]">
+                        <raise-error doc:name="Raise error" doc:id="1a4fb4a7-8e1e-4ef2-b167-d822ee8650ae" type="LK:PUT_EXISTING_NAZIV" />
+                    </when>
+                    <otherwise>
+                        <db:update doc:name="Update" doc:id="a6cafe23-2e80-49f4-8759-cf22588d0e99" config-ref="Erp_Apoteka_Database_Config">
+                            <db:sql>update lijekovi set naziv=:naziv, opis=:opis, cijena=:cijena, kolicina=:kolicina, kategorija=:kategorija where lijek_id=:lijek_id</db:sql>
+                            <db:input-parameters><![CDATA[#[{
+	"lijek_id":vars.object.lijekId,
+	"naziv": vars.object.naziv,
+	"opis": vars.object.opis,
+	"cijena": vars.object.cijena,
+	"kolicina": vars.object.kolicina,
+	"kategorija": vars.object.kategorija,
+}]]]></db:input-parameters>
+                        </db:update>
+                        <ee:transform doc:name="Transform Message" doc:id="846211a0-363b-46e7-bbb1-6181b1eaa6b9">
+                            <ee:message>
+                                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 204,
+	"message": "No content"
+}]]></ee:set-payload>
+                            </ee:message>
+                        </ee:transform>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <db:update doc:name="Update" doc:id="35b5def3-e2a2-48ec-bffd-444a794ccf93" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>update lijekovi set naziv=:naziv, opis=:opis, cijena=:cijena, kolicina=:kolicina, kategorija=:kategorija where lijek_id=:lijek_id</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"lijek_id":vars.object.lijekId,
+	"naziv": vars.object.naziv,
+	"opis": vars.object.opis,
+	"cijena": vars.object.cijena,
+	"kolicina": vars.object.kolicina,
+	"kategorija": vars.object.kategorija,
+}]]]></db:input-parameters>
+                </db:update>
+                <ee:transform doc:name="Transform Message" doc:id="555e5ebe-d1ad-4fcf-b026-8f2390d540f3">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 204,
+	"message": "No content"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[204]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3a8e5a65-ac68-47c7-bea3-dbce9b98e3d4" type="LK:PUT_EXISTING_NAZIV">
+                <ee:transform doc:name="Transform Message" doc:id="ce38a06b-27fe-4bb6-9d89-521d90bbaa1d">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Naziv is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\naciniPlacanja:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="put:\naciniPlacanja:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var editedObject" doc:id="885a9622-8142-4ab5-bc7d-1bbcc677dc17" variableName="object" />
+        <set-variable value="#[payload.naziv]" doc:name="var naziv" doc:id="b0d6ea60-47e3-460a-a9e5-5d557befaf46" variableName="naziv" />
+        <flow-ref doc:name="findNacinPlacanjaByNaziv" doc:id="0d498f65-8989-444c-b3f9-30d9503059e6" name="findNacinPlacanjaByNaziv" />
+        <choice doc:name="Choice" doc:id="faab3968-fa2b-4e38-9a03-4a2f9095b65c">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <choice doc:name="Choice" doc:id="be2bc95c-5fcc-4d5b-a9d4-bd1c7fa22cd8">
+                    <when expression="#[payload[0].nacin_placanja_id != vars.object.nacinPlacanjaId]">
+                        <raise-error doc:name="Raise error" doc:id="869a7c58-ed21-4e3f-bc0a-78de947d3f54" type="NP:PUT_EXISTING_NAZIV" />
+                    </when>
+                    <otherwise>
+                        <db:update doc:name="Update" doc:id="35f52da0-ad14-4c7b-ae8f-f32f044886e7" config-ref="Erp_Apoteka_Database_Config">
+                            <db:sql>update nacini_placanja set naziv=:naziv, opis=:opis where nacin_placanja_id=:nacinPlacanjaId</db:sql>
+                            <db:input-parameters><![CDATA[#[{
+	"nacinPlacanjaId":vars.object.nacinPlacanjaId,
+	"naziv":vars.object.naziv,
+	"opis":vars.object.opis
+}]]]></db:input-parameters>
+                        </db:update>
+                        <ee:transform doc:name="Transform Message" doc:id="952f9837-c9b0-44fd-a0e1-eea277244c94">
+                            <ee:message>
+                                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 204,
+	"message": "No content"
+}]]></ee:set-payload>
+                            </ee:message>
+                            <ee:variables>
+                                <ee:set-variable variableName="httpStatus"><![CDATA[204]]></ee:set-variable>
+                            </ee:variables>
+                        </ee:transform>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <db:update doc:name="Update" doc:id="1b681053-091a-4770-84db-61799cae2878" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>update nacini_placanja set naziv=:naziv, opis=:opis where nacin_placanja_id=:nacinPlacanjaId</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"nacinPlacanjaId":vars.object.nacinPlacanjaId,
+	"naziv":vars.object.naziv,
+	"opis":vars.object.opis
+}]]]></db:input-parameters>
+                </db:update>
+                <ee:transform doc:name="Transform Message" doc:id="de5b6beb-ca27-4fe4-a68a-0998b34a889a">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 204,
+	"message": "No content"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[204]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="517a47e8-b77d-486b-8ba3-d6f14c4cb7ee" type="NP:PUT_EXISTING_NAZIV">
+                <ee:transform doc:name="Transform Message" doc:id="57da4e6e-1e56-46fe-b7b1-3a97da44da27">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Naziv is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\pacijenti:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="put:\pacijenti:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var insertedObject" doc:id="eab5f723-b1ec-46a7-853a-a51f745473ec" variableName="object" />
+        <set-variable value="#[payload.sifraZdravstvene]" doc:name="var sifraZdravstvene" doc:id="668bfe98-324a-418f-960b-06213b0117e0" variableName="sifraZdravstvene" />
+        <flow-ref doc:name="Flow findPacijentBySifraZdravstvene" doc:id="2b25a930-7057-4516-a454-ba5e7927b359" name="findPacijentBySifraZdravstvene" />
+        <choice doc:name="Choice" doc:id="0a62bfda-dc95-4a22-9149-5559c7c60b0c">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <choice doc:name="Choice" doc:id="d8aa9b9e-60c6-484f-a507-019dba9ca79c">
+                    <when expression="#[payload[0].pacijent_id != vars.object.pacijentId]">
+                        <raise-error doc:name="Raise error" doc:id="03666bc4-dd2f-48aa-a7e1-a8bbd5701cb6" type="PC:PUT_EXISTING_SIFRAZDRAVSTVENE" />
+                    </when>
+                    <otherwise>
+                        <db:update doc:name="Update" doc:id="38f9e6b1-6217-4aed-b8fe-08c6f9d9905f" config-ref="Erp_Apoteka_Database_Config">
+                            <db:sql>update pacijenti set ime=:ime, prezime=:prezime, sifra_zdravstvene=:sifraZdravstvene, datum_rodjenja=:datumRodjenja where pacijent_id=:pacijentId</db:sql>
+                            <db:input-parameters><![CDATA[#[{
+	"pacijentId": vars.object.pacijentId,
+	"ime": vars.object.ime,
+	"prezime": vars.object.prezime,
+	"sifraZdravstvene": vars.object.sifraZdravstvene,
+	"datumRodjenja": vars.object.datumRodjenja
+}]]]></db:input-parameters>
+                        </db:update>
+                        <ee:transform doc:name="Transform Message" doc:id="d5262a60-3e7c-405f-91cd-c74cf5e7b193">
+                            <ee:message>
+                                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 204,
+	"message": "No conent"
+}]]></ee:set-payload>
+                            </ee:message>
+                            <ee:variables>
+                                <ee:set-variable variableName="httpStatus"><![CDATA[204]]></ee:set-variable>
+                            </ee:variables>
+                        </ee:transform>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <db:update doc:name="Update" doc:id="15ef9baa-22c9-4288-abd3-1a4c8c1ce170" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>update pacijenti set ime=:ime, prezime=:prezime, sifra_zdravstvene=:sifraZdravstvene, datum_rodjenja=:datumRodjenja where pacijent_id=:pacijentId</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"pacijentId": vars.object.pacijentId,
+	"ime": vars.object.ime,
+	"prezime": vars.object.prezime,
+	"sifraZdravstvene": vars.object.sifraZdravstvene,
+	"datumRodjenja": vars.object.datumRodjenja
+}]]]></db:input-parameters>
+                </db:update>
+                <ee:transform doc:name="Transform Message" doc:id="5b97df96-15b5-4946-a667-2eb27ce8130b">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 204,
+	"message": "No content"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="bd4b1c88-f624-4e60-9557-0b9a40d0750e" type="PC:PUT_EXISTING_SIFRAZDRAVSTVENE">
+                <ee:transform doc:name="Transform Message" doc:id="fa69ed55-2ba3-49ab-892f-1a1b2112512e">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Sifra zdravstvene is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\racuni:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="put:\racuni:application\json:erp-apoteka-api-config" />
+        <try doc:name="Try" doc:id="30c4be18-1658-4c96-8437-f68ca1ce8735">
+            <db:update doc:name="Update" doc:id="1b8b8914-0105-450f-8240-a0e37591a59f" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>update racuni set datum=:datum, suma=:suma, nacin_placanja=:nacinPlacanja, farmaceut=:farmaceut, recept=:recept where racun_id=:racunId</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"racunId": payload.racunId,
+	"datum":payload.datum,
+	"nacinPlacanja":payload.nacinPlacanja,
+	"farmaceut":payload.farmaceut,
+	"recept":payload.recept,
+	"suma":payload.suma
+}]]]></db:input-parameters>
+            </db:update>
+            <ee:transform doc:name="Transform Message" doc:id="7d8175d3-f7f1-4def-b7f4-94fefd0d9ee1">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 204,
+	"messsage": "No content"
+}]]></ee:set-payload>
+                </ee:message>
+            </ee:transform>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="afb2e426-5cf3-4b05-92b9-7f9542d7385a" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="d409144a-5afc-4529-8a70-3092cc796233">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </flow>
+    <flow name="put:\recepti:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="put:\recepti:application\json:erp-apoteka-api-config" />
+        <try doc:name="Try" doc:id="95d85be7-78a8-4ea9-8cce-60a82696c097">
+            <db:update doc:name="Update" doc:id="1c14de31-bc45-4947-afbc-d397df37e8ed" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>update recepti set pacijent=:pacijentId, datum_izdavanja=:datumIzdavanja, sadrzaj=:sadrzaj, naziv_ustanove=:nazivUstanove where recept_id=:receptId;</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"receptId":payload.receptId,
+	"pacijentId":payload.pacijentId,
+	"datumIzdavanja": payload.datumIzdavanja,
+	"nazivUstanove":payload.nazivUstanove,
+	"sadrzaj": payload.sadrzaj
+}]]]></db:input-parameters>
+            </db:update>
+            <ee:transform doc:name="Transform Message" doc:id="368146e2-20e0-476d-b94c-ae409e68eb43">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"status": 204,
+	"message": "No content"
+}]]></ee:set-payload>
+                </ee:message>
+            </ee:transform>
+        </try>
+    </flow>
+    <flow name="delete:\admini\(adminId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="adminId">attributes.uriParams.'adminId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\admini\(adminId):erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="f8faa504-94a1-4ba5-87e4-17a155a347b4" name="findAdminById" />
+        <choice doc:name="Choice" doc:id="c241258a-f581-460f-acc8-75b4eaba8afb">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <try doc:name="Try" doc:id="8588f05d-a93d-465c-8860-6056eb532a0f">
+                    <db:delete doc:name="Delete" doc:id="c381ce8b-7462-496e-bfe7-2717b7e1d02a" config-ref="Erp_Apoteka_Database_Config">
+                        <db:sql>delete from admini where admin_id=:adminId</db:sql>
+                        <db:input-parameters><![CDATA[#[{
+	"adminId":vars.adminId
+}]]]></db:input-parameters>
+                    </db:delete>
+                    <ee:transform doc:name="Transform Message" doc:id="9582b9c1-2a59-4d33-8cbc-1635215cd019">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 202,
+	"message": "Successfully deleted admin"
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                    <error-handler>
+                        <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="52092ac7-b5c9-41ca-8aa7-b4d510eec530" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION, DB:RETRY_EXHAUSTED">
+                            <ee:transform doc:name="Transform Message" doc:id="461f5898-809e-4d9e-a4a5-73416902ba56">
+                                <ee:message>
+                                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                                </ee:message>
+                            </ee:transform>
+                        </on-error-propagate>
+                    </error-handler>
+                </try>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="b461ba0d-2a44-40ef-a913-eb7c81c5c7c0" type="ADM:DELETE_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="6f05182a-daf0-4009-99d3-168d716ce745" type="ADM:DELETE_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="d00a7545-3276-4013-97a8-a06b957ce066">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Admin not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="delete:\farmaceuti\(farmaceutId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="farmaceutId">attributes.uriParams.'farmaceutId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\farmaceuti\(farmaceutId):erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="4d7d8690-a664-4a3a-9e59-6b5ef9169d90" name="findFarmaceutById" />
+        <choice doc:name="Choice" doc:id="4d52d252-a561-466a-b102-c384ac1322a5">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <db:delete doc:name="Delete" doc:id="0c711dbb-f2c7-4afa-b869-e9102ea93b68" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>delete from farmaceuti where farmaceut_id=:farmaceutId</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"farmaceutId": vars.farmaceutId
+}]]]></db:input-parameters>
+                </db:delete>
+                <ee:transform doc:name="Transform Message" doc:id="3da5f9e9-bf8e-49b5-be46-176cb366dead">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 202,
+	"message": "Successfully deleted farmaceut"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[202]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="35b8cc3b-ebc6-4d87-822a-1c2a5541a71f" type="FRM:DELETE_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="fbe49058-69f6-4c98-87a9-03a8d15856f7" type="FRM:DELETE_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="794c5973-d87f-45d1-9847-df2058437669">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Farmaceut not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="delete:\kategorije\(kategorijaId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="kategorijaId">attributes.uriParams.'kategorijaId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\kategorije\(kategorijaId):erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="f92ea474-bd2d-46e6-b1d6-33a0eb789932" name="findKategorijaById" />
+        <choice doc:name="Choice" doc:id="8996e7d0-3b30-41aa-a7ca-1a5536d1731b">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <db:delete doc:name="Delete" doc:id="b0ddb567-7d6e-4a1d-af6b-2480a80d2720" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>delete from kategorije where kategorija_id=:kategorijaId</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"kategorijaId": vars.kategorijaId
+}]]]></db:input-parameters>
+                </db:delete>
+                <ee:transform doc:name="Transform Message" doc:id="b8e41d2b-4ea4-496d-920d-689d0fb0d4cc">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 202,	
+	"message": "Accepted",
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="8523a2b9-cefd-4e10-bbe3-984d2144c179" type="KTG:DELETE_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c0302321-1a8c-4fa0-82f8-1338d46225f0" type="KTG:DELETE_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="66ebfda6-e3ba-45b3-95fc-3f6b5e78ab0f">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Kategorija not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="delete:\lijekovi\(lijekId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="lijekId">attributes.uriParams.'lijekId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\lijekovi\(lijekId):erp-apoteka-api-config" />
+        <flow-ref doc:name="findLijekById" doc:id="f450290d-0683-410e-9ae2-c45205622d2b" name="findLijekById" />
+        <choice doc:name="Choice" doc:id="1b5a04df-1320-4fed-ba8b-463f4859e3da">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <db:delete doc:name="Delete" doc:id="02f65011-5478-4b7a-852c-1345623a10cc" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>delete from lijekovi where lijek_id=:lijekId</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"lijekId": vars.lijekId
+}]]]></db:input-parameters>
+                </db:delete>
+                <ee:transform doc:name="Transform Message" doc:id="4d90d043-c17c-4eeb-a85f-99e0e851937c">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 202,
+	"message": "Accepted"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="bff25d5c-8d78-46db-9d11-118b005b41ae" type="LK:DELETE_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="226e981e-ba91-49ca-9cdc-5c4df5f54b6d" type="LK:DELETE_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="4f4a799e-1a9c-4f76-9cd2-cb1bd059862f">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Lijek not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="delete:\naciniPlacanja\(nacinPlacanjaId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="nacinPlacanjaId">attributes.uriParams.'nacinPlacanjaId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\naciniPlacanja\(nacinPlacanjaId):erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="5165c9e4-ae07-49db-b0c2-8066ed2f11f7" name="findNacinPlacanjaById" />
+        <choice doc:name="Choice" doc:id="12f8ce2c-dec3-4e3b-ba6d-05fd939946f4">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <db:delete doc:name="Delete" doc:id="2fe8af17-4ce0-4488-9b85-85d763bd96ab" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>delete from nacini_placanja where nacin_placanja_id=:nacinPlacanjaId</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"nacinPlacanjaId":vars.nacinPlacanjaId
+}]]]></db:input-parameters>
+                </db:delete>
+                <ee:transform doc:name="Transform Message" doc:id="4a62d7ba-ccba-4ba8-9ba0-025dbe89e108">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 202,
+	"message": "Accepted"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="8d53aa52-d823-4f2a-b4f3-c868fa1ef7d4" type="NP:DELETE_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4f57577a-d252-422c-a7a0-3d52a4799df9" type="NP:DELETE_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="8614b639-8641-4d1f-b4b6-bf179304657c">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Not found",
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="delete:\pacijenti\(pacijentId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="pacijentId">attributes.uriParams.'pacijentId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\pacijenti\(pacijentId):erp-apoteka-api-config" />
+        <flow-ref doc:name="findPacijentById" doc:id="e656cf80-8c2f-4b08-9135-3f522ae61bb4" name="findPacijentById" />
+        <choice doc:name="Choice" doc:id="4b4a8fbe-bb43-442e-9d1a-e224d2a42c55">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <db:delete doc:name="Delete" doc:id="491765a3-f311-4f27-88ac-5cd4dc032059" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>delete from pacijenti where pacijent_id=:pacijentId</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"pacijentId":vars.pacijentId
+}]]]></db:input-parameters>
+                </db:delete>
+                <ee:transform doc:name="Transform Message" doc:id="bdf805ec-f08e-4dfa-9943-7506c4682524">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 202,
+	"message": "Accepted"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="e8ba9ace-fd85-490d-8da7-0a2efffcabd8" type="PC:DELETE_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="91f2a02c-6b95-40b2-9279-7f397f16b074" type="PC:DELETE_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="74e9e8a9-4ae3-4daa-bee2-1cf6cef2adf6">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Pacijent not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="delete:\prodaje\(prodajaId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="prodajaId">attributes.uriParams.'prodajaId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\prodaje\(prodajaId):erp-apoteka-api-config" />
+    </flow>
+    <flow name="delete:\racuni\(racunId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="racunId">attributes.uriParams.'racunId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\racuni\(racunId):erp-apoteka-api-config" />
+        <flow-ref doc:name="findRacunById" doc:id="f49c4f1a-3834-42b4-b7d2-54e57144dc53" name="findRacunById" />
+        <choice doc:name="Choice" doc:id="e99cb917-a3f9-4233-a625-4a1de5aa406c">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <db:delete doc:name="Delete" doc:id="e39a4692-b8da-43bc-8b22-a90ec58f2b0d" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>delete from racuni where racun_id=:racunId;</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"racunId":vars.racunId
+}]]]></db:input-parameters>
+                </db:delete>
+                <ee:transform doc:name="Transform Message" doc:id="cee44c96-aa91-4d01-8547-9facfe5c42f1">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": 202,
+	"status": "Accepted"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="dcfe2dde-de63-447b-9fc6-7c1a42852d49" type="RCN:DELETE_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="1184f4f5-c920-4738-8cbe-4021ba824ced" type="RCN:DELETE_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="b0741cc0-6984-4547-aa22-90aaed3e49f1">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Racun not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="delete:\recepti\(receptId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="receptId">attributes.uriParams.'receptId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\recepti\(receptId):erp-apoteka-api-config" />
+        <flow-ref doc:name="findReceptById" doc:id="985e296f-fd2e-4647-a02e-f8d532482e8e" name="findReceptById" />
+        <choice doc:name="Choice" doc:id="ab295106-5d11-4212-88fe-17e85410be8a">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <db:delete doc:name="Delete" doc:id="9d66ff21-5f3c-4d35-a977-1735ac428f36" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>delete from recepti where recept_id=:receptId</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"receptId": vars.receptId
+}]]]></db:input-parameters>
+                </db:delete>
+                <ee:transform doc:name="Transform Message" doc:id="a5b8e311-9698-4e6e-8b58-c19e076db2f7">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 202,
+	"message": "Accepted"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="bd598f72-2bbe-43f0-a777-ded079aaaa67" type="RC:DELETE_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4a9cbbe9-a269-49c5-bd2a-732015b84849" type="RC:DELETE_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="ce58a904-2354-487a-9805-7ee3cfe5ed52">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Recept not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\admini:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\admini:erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="e2eb7420-5dd4-40c8-b45c-32a27d49cce7" name="findAllAdmini" />
+        <ee:transform doc:name="JSON Admini response" doc:id="867cd570-ac54-4b6a-a794-eafd684740c0">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	password: payload01.password,
+	adminId: payload01.admin_id,
+	email: payload01.email,
+	username: payload01.username
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\admini\(adminId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="adminId">attributes.uriParams.'adminId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\admini\(adminId):erp-apoteka-api-config" />
+        <set-variable value="#[attributes.uriParams.adminId]" doc:name="Set Variable" doc:id="0ad83998-a69f-4c9f-92c5-aef6c39d431d" variableName="username" />
+        <flow-ref doc:name="Flow Reference" doc:id="20a95948-69c7-4227-974b-1eb98a078daf" name="findAdminById" />
+        <choice doc:name="Choice" doc:id="87780b59-e7f7-45af-9e29-b1fedfa63944">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="JSON Admin response" doc:id="fd4ae33f-ba16-4193-8bf5-0d4864df7fdf">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"adminId": payload[0].admin_id,
+	"username": payload[0].username,
+	"email": payload[0].email,
+	"password": payload[0].password,
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="45de5187-6b43-4766-94af-4e7caabde428" type="ADM:ADMIN_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="dfe2d5bd-0597-40fe-be9e-2a6bb06443b2" type="ADM:ADMIN_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="bfdf83da-d97f-4f05-b1ed-59af0b215a7e">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Admin not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\farmaceuti:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\farmaceuti:erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="a26fadc6-5bb9-49fb-b9b0-cfb399e55479" name="findAllFarmaceuti" />
+        <ee:transform doc:name="Transform Message" doc:id="88bc9003-406d-41d7-806c-5db6fbfc92ac">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	ime: payload01.ime,
+	prezime: payload01.prezime default "",
+	password: payload01.password,
+	farmaceutId: payload01.farmaceut_id,
+	email: payload01.email,
+	username: payload01.username,
+	brojDozvole: payload01.broj_dozvole as String
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\farmaceuti\(farmaceutId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="farmaceutId">attributes.uriParams.'farmaceutId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\farmaceuti\(farmaceutId):erp-apoteka-api-config" />
+        <set-variable value="#[attributes.uriParams.farmaceutId]" doc:name="Set Variable" doc:id="0693ec64-e1a0-4e50-8a59-ba56ef0c6707" variableName="farmaceutId" />
+        <flow-ref doc:name="Flow Reference" doc:id="fe5351e1-76a0-46b4-a831-6c3dcb1db4f8" name="findFarmaceutById" />
+        <choice doc:name="Choice" doc:id="a45ec960-6d11-4953-ab63-0d83c7494dd0">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="Transform Message" doc:id="ed9c4858-dec9-4694-92e5-505c7030f50c">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	ime: payload[0].ime,
+	prezime: payload[0].prezime default "",
+	password: payload[0].password,
+	farmaceutId: payload[0].farmaceut_id,
+	email: payload[0].email,
+	username: payload[0].username,
+	brojDozvole: payload[0].broj_dozvole
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="1d84fd87-893b-495c-a6fa-6e1f8569df9c" type="FRM:GET_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="dfe91548-8d2b-4e1f-9e1b-b0e96b6ee1ba" type="FRM:GET_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="3025523f-0fd6-479f-af95-bdea519c9c13">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Farmaceut not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\kategorije:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\kategorije:erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="3006712c-f00a-4007-ae84-96266dfb1854" name="findAllKategorije" />
+        <ee:transform doc:name="Transform Message" doc:id="f818ea37-831f-41e1-828b-4e157de89679">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	kategorijaId: payload01.kategorija_id,
+	naziv: payload01.naziv,
+	opis: payload01.opis
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\kategorije\(kategorijaId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="kategorijaId">attributes.uriParams.'kategorijaId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\kategorije\(kategorijaId):erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="6bba773f-b3ac-4d0e-9180-6a5d810a236e" name="findKategorijaById" />
+        <choice doc:name="Choice" doc:id="ccbb05cb-d1f8-47e5-94dd-81df467e6588">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="Transform Message" doc:id="b70be3ce-0a2a-4c07-bceb-8cb06b3574a0">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	kategorijaId: payload[0].kategorija_id,
+	naziv: payload[0].naziv,
+	opis: payload[0].opis
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="41edb5a8-8e22-4bce-9934-a0459bb0337a" type="KTG:GET_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b7bd3583-db66-4690-9ec3-c396a4a0c880" type="KTG:GET_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="28274465-4921-4953-bad3-72c609e7aead">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Kategorija not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\lijekovi:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\lijekovi:erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="ead11ac8-402e-4fe3-a433-278d68887885" name="findAllLijekovi" />
+        <ee:transform doc:name="Transform Message" doc:id="5f0bfc01-4361-426e-9cec-cc91bc15bb55">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	naziv: payload01.naziv,
+	kolicina: payload01.kolicina,
+	lijekId: payload01.lijek_id,
+	cijena: payload01.cijena,
+	opis: payload01.opis,
+	kategorija: payload01.kategorija
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\lijekovi\pretraga:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\lijekovi\pretraga:erp-apoteka-api-config" />
+        <choice doc:name="Choice" doc:id="5f165f91-0d01-47a3-a65e-cc0dd16abbc9">
+            <when expression="#[attributes.queryParams.nazivLijeka != null]">
+                <db:select doc:name="Select" doc:id="c25bbb91-4ea2-496f-a862-fa7e416c2eee" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>select * from lijekovi where naziv=:nazivLijeka</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"nazivLijeka":attributes.queryParams.nazivLijeka
+}]]]></db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="7e94f745-6286-4dd4-8609-6b53997bdf3b">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	naziv: payload01.naziv,
+	kolicina: payload01.kolicina,
+	lijekId: payload01.lijek_id,
+	cijena: payload01.cijena,
+	opis: payload01.opis,
+	kategorija: payload01.kategorija
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <when expression="#[attributes.queryParams.nazivKategorije != null]">
+                <db:select doc:name="Select" doc:id="ac09dbd4-0edb-4c45-8db7-e129214014f3" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>select * from lijekovi where kategorija=(select kategorija_id from kategorije where naziv=:nazivKategorije)</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"nazivKategorije":attributes.queryParams.nazivKategorije
+}]]]></db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="f290c1ea-e35c-47c2-8785-5a57ef74d870">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	naziv: payload01.naziv,
+	kolicina: payload01.kolicina,
+	lijekId: payload01.lijek_id,
+	cijena: payload01.cijena,
+	opis: payload01.opis,
+	kategorija: payload01.kategorija
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+			<otherwise >
+				<flow-ref doc:name="Flow Reference" doc:id="c4a90190-4d96-4780-b542-30f9802055e2" name="findAllLijekovi"/>
+				<ee:transform doc:name="Transform Message" doc:id="77eaeac0-65fd-493c-874a-6ef2f7f20b12" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	naziv: payload01.naziv,
+	kolicina: payload01.kolicina,
+	lijekId: payload01.lijek_id,
+	cijena: payload01.cijena,
+	opis: payload01.opis,
+	kategorija: payload01.kategorija
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+        </choice>
+    </flow>
+    <flow name="get:\lijekovi\(lijekId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="lijekId">attributes.uriParams.'lijekId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\lijekovi\(lijekId):erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="04fd290f-2e34-45f1-9531-913f6044ed6f" name="findLijekById" />
+        <choice doc:name="Choice" doc:id="a3d01f19-ef2d-4f52-b24e-3060c4bb6631">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="Transform Message" doc:id="4e9026fb-fe81-4658-a092-4e7d776dd89b">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	naziv: payload[0].naziv,
+	kolicina: payload[0].kolicina,
+	lijekId: payload[0].lijek_id,
+	cijena: payload[0].cijena,
+	opis: payload[0].opis,
+	kategorija: payload[0].kategorija
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="8500b4a3-2329-4de6-8811-72ea8aa5e5b9" type="LK:GET_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4f81f165-5c26-4c64-84ab-f05c25b36b00" type="LK:GET_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="7568ec64-5b6c-4b9c-beff-b2d56d83e043">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status":404,
+	"message": "Lijek not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\naciniPlacanja:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\naciniPlacanja:erp-apoteka-api-config" />
+        <db:select doc:name="Select" doc:id="4d71f541-83fa-4c36-bfc5-ec284d1d9a02" config-ref="Erp_Apoteka_Database_Config">
+            <db:sql>select * from nacini_placanja</db:sql>
+        </db:select>
+        <ee:transform doc:name="Transform Message" doc:id="6bc7d498-9e57-493f-a888-fe22047ae894">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	nacinPlacanjaId: payload01.nacin_placanja_id,
+	naziv: payload01.naziv,
+	opis: payload01.opis
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\naciniPlacanja\(nacinPlacanjaId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="nacinPlacanjaId">attributes.uriParams.'nacinPlacanjaId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\naciniPlacanja\(nacinPlacanjaId):erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="3f294fb5-bc74-46eb-9784-4f5bfd52cb06" name="findNacinPlacanjaById" />
+        <choice doc:name="Choice" doc:id="d17deb91-9881-4a59-9ee7-2b3f3fca286a">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="Transform Message" doc:id="9e43ff1d-96c1-4eb5-9354-2f6bdd79ed09">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	nacinPlacanjaId: payload[0].nacin_placanja_id,
+	naziv: payload[0].naziv,
+	opis: payload[0].opis
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="32262158-a686-4ee6-8458-27d1735fa4f9" type="NP:GET_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3563ae25-0f9d-4a7a-9c52-13828609eb4b" type="NP:GET_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="5ed4e30e-fdb1-47be-9fc8-18a6bbe691d0">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Nacin placanja not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\pacijenti:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\pacijenti:erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="368d4546-6596-4e04-ad07-38194ef4ed09" name="findAllPacijenti" />
+        <ee:transform doc:name="Transform Message" doc:id="d65242bb-906e-40cd-a9b5-a88a1688e33f">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	ime: payload01.ime,
+	prezime: payload01.prezime,
+	sifraZdravstvene: payload01.sifra_zdravstvene,
+	datumRodjenja: payload01.datum_rodjenja as String default "",
+	pacijentId: payload01.pacijent_id
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\pacijenti\pretraga:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\pacijenti\pretraga:erp-apoteka-api-config" />
+        <choice doc:name="Choice" doc:id="106e2230-0731-415b-a37b-0f38dca846a6">
+            <when expression="#[attributes.queryParams.ime != null]">
+                <db:select doc:name="Select" doc:id="491964e6-05bf-4750-9708-497ea0bc666c" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>select * from pacijenti where ime=:ime</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"ime":attributes.queryParams.ime
+}]]]></db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="15cc41d9-77a6-4521-910b-ab122ba8daf0">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	ime: payload01.ime,
+	prezime: payload01.prezime,
+	sifraZdravstvene: payload01.sifra_zdravstvene,
+	datumRodjenja: payload01.datum_rodjenja as String default "",
+	pacijentId: payload01.pacijent_id
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <when expression="#[attributes.queryParams.prezime != null]">
+                <db:select doc:name="Select" doc:id="af88a8ad-a4c0-4d40-a7b0-0dcc145b9c27" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>select * from pacijenti where prezime=:prezime</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"prezime":attributes.queryParams.prezime
+}]]]></db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="42c0db1c-2b55-4f09-a3d2-69d5a0a7ddfb">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	ime: payload01.ime,
+	prezime: payload01.prezime,
+	sifraZdravstvene: payload01.sifra_zdravstvene,
+	datumRodjenja: payload01.datum_rodjenja as String default "",
+	pacijentId: payload01.pacijent_id
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <when expression="#[attributes.queryParams.sifraZdravstvene != null]">
+                <db:select doc:name="Select" doc:id="0edc94b9-2a58-41d8-832e-3c96d24c1bc7" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>select * from pacijenti where sifra_zdravstvene=:sifraZdravstvene</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"sifraZdravstvene": attributes.queryParams.sifraZdravstvene
+}]]]></db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="2bf412db-9b78-4f9f-810a-b0e3be14e75c">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	ime: payload01.ime,
+	prezime: payload01.prezime,
+	sifraZdravstvene: payload01.sifra_zdravstvene,
+	datumRodjenja: payload01.datum_rodjenja as String default "",
+	pacijentId: payload01.pacijent_id
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+        </choice>
+    </flow>
+    <flow name="get:\pacijenti\(pacijentId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="pacijentId">attributes.uriParams.'pacijentId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\pacijenti\(pacijentId):erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="576be69b-e03d-4038-bbe1-15ca3942bd44" name="findPacijentById" />
+        <choice doc:name="Choice" doc:id="5885c384-df86-458d-92ec-b8083a162b7d">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="Transform Message" doc:id="8a4a44db-49f4-4772-a066-74e1b8693ea6">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	ime: payload[0].ime,
+	prezime: payload[0].prezime,
+	sifraZdravstvene: payload[0].sifra_zdravstvene,
+	datumRodjenja: payload[0].datum_rodjenja,
+	pacijentId: payload[0].pacijent_id
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="93a43c79-29f2-4ece-8664-d8b65467db7c" type="PC:GET_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="62f60d68-b8fd-4e17-a168-611127f23b94" type="PC:GET_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="a8c0210e-09d7-42c9-af0b-d5c2625720d5">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Pacijent not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\prodaje\(racunId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="prodajaId">attributes.uriParams.'prodajaId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\prodaje\(prodajaId):erp-apoteka-api-config" />
+        <db:select doc:name="Select" doc:id="0806761c-111d-42c3-ba10-e5cb0d7a2922" config-ref="Erp_Apoteka_Database_Config">
+            <db:sql>select * from prodaje where racun=:racunId</db:sql>
+            <db:input-parameters><![CDATA[#[{
+	"racunId":attributes.uriParams.racunId
+}]]]></db:input-parameters>
+        </db:select>
+        <ee:transform doc:name="Transform Message" doc:id="b415ef6b-0825-439a-9884-ac11ca1184d8">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	lijek: payload01.lijek,
+	racun: payload01.racun,
+	prodajaId: payload01.prodaja_id
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\racuni:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\racuni:erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="4f88fde3-4768-471d-bcde-a2ef1e7612f8" name="findAllRacuni" />
+        <ee:transform doc:name="Transform Message" doc:id="1c25bf31-f942-43f5-b6f0-596aa8672304">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	datum: payload01.datum as String,
+	suma: payload01.suma,
+	nacinPlacanja: payload01.nacin_placanja,
+	racunId: payload01.racun_id,
+	farmaceut: payload01.farmaceut,
+	recept: payload01.recept
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\racuni\pretraga:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\racuni\pretraga:erp-apoteka-api-config" />
+        <choice doc:name="Choice" doc:id="482963b2-4f23-47ed-bdb3-5a6d7356cd4e">
+            <when expression="#[attributes.queryParams.datum != null]">
+                <db:select doc:name="Select" doc:id="986d79c2-a1a8-4049-a6a3-8599a5eda03b" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>select * from racuni where datum=:datum</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"datum":attributes.queryParams.datum
+}]]]></db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="01759c7c-d3d3-47a9-ae00-1b29162cb2a3">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	datum: payload01.datum as String,
+	suma: payload01.suma,
+	nacinPlacanja: payload01.nacin_placanja,
+	racunId: payload01.racun_id,
+	farmaceut: payload01.farmaceut,
+	recept: payload01.recept
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <when expression="#[attributes.queryParams.imeFarmaceuta != null]">
+                <db:select doc:name="Select" doc:id="e1e2a3d1-8901-4845-a3bc-b8167d22ad77" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>select * from racuni where farmaceut in (select farmaceut_id from farmaceuti where ime=:ime)</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"ime": attributes.queryParams.imeFarmaceuta
+}]]]></db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="82d9c30b-9aa1-42b6-9c72-2809a0f5bf3a">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	datum: payload01.datum as String,
+	suma: payload01.suma,
+	nacinPlacanja: payload01.nacin_placanja,
+	racunId: payload01.racun_id,
+	farmaceut: payload01.farmaceut,
+	recept: payload01.recept
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <when expression="#[attributes.queryParams.prezimeFarmaceuta != null]">
+                <db:select doc:name="Select" doc:id="5029cca6-0c43-4189-ad9b-a2fabc4a5723" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>select * from racuni where farmaceut in (select farmaceut_id from farmaceuti where prezime=:prezime)</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"prezime":attributes.queryParams.prezimeFarmaceuta
+}]]]></db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="c40c464a-6509-48a7-afee-c59df3d70ba0">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	datum: payload01.datum as String,
+	suma: payload01.suma,
+	nacinPlacanja: payload01.nacin_placanja,
+	racunId: payload01.racun_id,
+	farmaceut: payload01.farmaceut,
+	recept: payload01.recept
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+        </choice>
+    </flow>
+    <flow name="get:\racuni\(racunId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="racunId">attributes.uriParams.'racunId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\racuni\(racunId):erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="9c2f9cdd-dbb4-44d8-bee8-689f3b66e760" name="findRacunById" />
+        <choice doc:name="Choice" doc:id="919d6904-ee30-4344-b2e9-f64ad0180772">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="Transform Message" doc:id="d97a00f9-e1dd-41e8-9482-35b3fecfcfb1">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	datum: payload[0].datum as String,
+	suma: payload[0].suma,
+	nacinPlacanja: payload[0].nacin_placanja,
+	racunId: payload[0].racun_id,
+	farmaceut: payload[0].farmaceut,
+	recept: payload[0].recept
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="30e891da-ca7c-41c8-8c0a-8f2460c32a7d" type="RCN:GET_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c1bb925f-2a25-4278-9657-847157af60cd" type="RCN:GET_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="297319c6-d3ed-44d8-a3be-e0575817f445">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Racun not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\recepti:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\recepti:erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="3eac08b0-e02d-4f97-8cbb-f200cb4942fb" name="findAllRecepti" />
+        <ee:transform doc:name="Transform Message" doc:id="49ce17d2-b0f6-417d-90c9-3dfe0e18dccb">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	pacijentId: payload01.pacijent,
+	receptId: payload01.recept_id,
+	datumIzdavanja: payload01.datum_izdavanja as String,
+	sadrzaj: payload01.sadrzaj,
+	nazivUstanove: payload01.naziv_ustanove
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\recepti\pretraga:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\recepti\pretraga:erp-apoteka-api-config" />
+        <choice doc:name="Choice" doc:id="5e11d405-efde-4aba-be99-8dd6d4cd02ce">
+            <when expression="#[attributes.queryParams.ime != null]">
+                <db:select doc:name="Select" doc:id="9f16c9d2-9119-4c43-a77c-1d08599b87cd" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>select * from recepti where pacijent in (select pacijent_id from pacijenti where ime=:ime)</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"ime":attributes.queryParams.ime
+}]]]></db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="46cea0fa-1199-42e2-8404-1ad4ada1969e">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	pacijentId: payload01.pacijent,
+	receptId: payload01.recept_id,
+	datumIzdavanja: payload01.datum_izdavanja as String,
+	sadrzaj: payload01.sadrzaj,
+	nazivUstanove: payload01.naziv_ustanove
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <when expression="#[attributes.queryParams.prezime != null]">
+                <db:select doc:name="Select" doc:id="8311525a-c52e-434d-920f-606b7132d5d4" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>select * from recepti where pacijent in (select pacijent_id from pacijenti where prezime=:prezime)</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"prezime":attributes.queryParams.prezime
+}]]]></db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="50d37a50-f8a0-4e59-ba85-033d9d392be5">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload map ( payload01 , indexOfPayload01 ) -> {
+	pacijentId: payload01.pacijent,
+	receptId: payload01.recept_id,
+	datumIzdavanja: payload01.datum_izdavanja as String,
+	sadrzaj: payload01.sadrzaj,
+	nazivUstanove: payload01.naziv_ustanove
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+        </choice>
+    </flow>
+    <flow name="get:\recepti\(receptId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="receptId">attributes.uriParams.'receptId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="get:\recepti\(receptId):erp-apoteka-api-config" />
+        <flow-ref doc:name="Flow Reference" doc:id="56afcd9f-708b-4704-8e42-9d3e1bec1b4b" name="findReceptById" />
+        <choice doc:name="Choice" doc:id="a1771761-be1a-46da-90ca-90ca06862ff6">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="Transform Message" doc:id="79b79d19-4a8a-46df-935f-99777d423730">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	pacijentId: payload[0].pacijent,
+	receptId: payload[0].recept_id,
+	datumIzdavanja: payload[0].datum_izdavanja as String,
+	sadrzaj: payload[0].sadrzaj,
+	nazivUstanove: payload[0].naziv_ustanove
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="f8cf7f9e-fff5-4d2c-ad53-b502d4e598ab" type="RC:GET_NOT_FOUND" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="fbeacd78-8d56-4031-b58c-27d47c344755" type="RC:GET_NOT_FOUND">
+                <ee:transform doc:name="Transform Message" doc:id="9929481d-028c-402f-a75f-538b02d998d6">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Recept not found"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\admini:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\admini:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var insertedObject" doc:id="3395848e-161d-4cdd-9964-f2226666ebc4" variableName="object" />
+        <set-variable value="#[payload.username]" doc:name="var username" doc:id="67dd1676-cae7-4078-ad16-57b4179a2e20" variableName="username" />
+        <set-variable value="#[payload.email]" doc:name="var email" doc:id="e71aa0d9-bbb1-4afc-9372-1deac971d454" variableName="email" />
+        <flow-ref doc:name="findAdminByUsername" doc:id="7e3927d7-0d4f-4757-b558-23b74c6e4cad" name="findAdminByUsername" />
+        <choice doc:name="Choice" doc:id="69f20b0e-c30c-49be-9f61-969e0e5d94ec">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <raise-error doc:name="Raise error" doc:id="6867b627-0895-4889-b288-f01364c4a831" type="ADM:EXISTING_USERNAME" />
+            </when>
+            <otherwise>
+                <flow-ref doc:name="findAdminByEmail" doc:id="b38459d2-9dc2-4d97-af73-b682b2cb3bab" name="findAdminByEmail" />
+                <choice doc:name="Choice" doc:id="08272bc6-859f-42a4-8000-29768d2412d9">
+                    <when expression="#[sizeOf(payload) &gt; 0]">
+                        <raise-error doc:name="Raise error" doc:id="1527d0b6-02d4-42ac-8730-b5e2888ec931" type="ADM:EXISTING_EMAIL" />
+                    </when>
+                    <otherwise>
+                        <db:insert doc:name="Insert" doc:id="f0b7cc39-b9af-4c33-9e07-51988e86b1b5" config-ref="Erp_Apoteka_Database_Config">
+                            <db:sql>insert into admini(username, password, email) values(:username,:password,:email)</db:sql>
+                            <db:input-parameters><![CDATA[#[{
+	"username":vars.object.username,
+	"password":vars.object.password,
+	"email":vars.object.email
+}]]]></db:input-parameters>
+                        </db:insert>
+                        <ee:transform doc:name="Transform Message" doc:id="9c04cdc6-83f7-4432-9b41-bcade92aab8c">
+                            <ee:message>
+                                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 200,
+	"message": "Successfully inserted admin"
+}]]></ee:set-payload>
+                            </ee:message>
+                            <ee:variables>
+                                <ee:set-variable variableName="httpStatus"><![CDATA[200]]></ee:set-variable>
+                            </ee:variables>
+                        </ee:transform>
+                    </otherwise>
+                </choice>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d6fcd600-0e23-4353-b577-44cbd7bd6a2e" type="ADM:EXISTING_USERNAME">
+                <ee:transform doc:name="Transform Message" doc:id="65ea228d-e587-4a93-9685-1e9d3cb57e42">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Username is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5182d32a-69f0-4d99-ae41-d1fc2a9eeaaa" type="ADM:EXISTING_EMAIL">
+                <ee:transform doc:name="Transform Message" doc:id="f7697621-aa15-4d6f-891a-02513311a44c">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Email is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\farmaceuti:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\farmaceuti:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var insertedObject" doc:id="e55bd741-0b60-4c49-b162-10cf9f05aad6" variableName="object" />
+        <set-variable value="#[payload.username]" doc:name="var username" doc:id="4106e04f-2cc5-42a4-8f31-b14ac4c93140" variableName="username" />
+        <set-variable value="#[payload.email]" doc:name="var email" doc:id="51460df4-b35b-4aa6-8955-31d9ab3a8b44" variableName="email" />
+        <set-variable value="#[payload.brojDozvole]" doc:name="var brojDozvole" doc:id="9ecd3eb8-a42e-473d-8f8b-b24c4af531a9" variableName="brojDozvole" />
+        <flow-ref doc:name="findByUsername" doc:id="cb50649d-e455-467d-a37a-4966731a7202" name="findAdminByUsername" />
+        <choice doc:name="Choice" doc:id="af1380f1-59ab-4fc5-9645-c3e2568e0aff">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <raise-error doc:name="Raise error" doc:id="b56ceb03-797b-429e-8bfc-42f7cce754b6" type="FRM:POST_EXISTING_USERNAME" />
+            </when>
+            <otherwise>
+                <flow-ref doc:name="findByEmail" doc:id="320c20bb-5bbc-40cd-a7b0-2c9b26257930" name="findAdminByEmail" />
+                <choice doc:name="Choice" doc:id="58b60b22-8306-4851-bfb3-4b8ca3ff7b46">
+                    <when expression="#[sizeOf(payload) &gt; 0]">
+                        <raise-error doc:name="Raise error" doc:id="677734cc-1c02-4493-a958-17ce4b2b697d" type="FRM:POST_EXISTING_EMAIL" />
+                    </when>
+                    <otherwise>
+                        <flow-ref doc:name="findByBrojDozvole" doc:id="30c4916d-6bf1-429e-8ea5-91a785837f36" name="findFarmaceutByBrojDozvole" />
+                        <choice doc:name="Choice" doc:id="4297c40b-802e-495c-9114-a90b1198e153">
+                            <when expression="#[sizeOf(payload) &gt; 0]">
+                                <raise-error doc:name="Raise error" doc:id="a7620af3-8b35-463a-bcc0-df51cbe7c94b" type="FRM:POST_EXISTING_BROJDOZVOLE" />
+                            </when>
+                            <otherwise>
+                                <db:insert doc:name="Insert" doc:id="b7eecb12-1154-4ca9-a2c4-6452edf01b25" config-ref="Erp_Apoteka_Database_Config">
+                                    <db:sql>insert into farmaceuti(username, password, email, ime, prezime, broj_dozvole) values (:username, :password, :email, :ime, :prezime, :broj_dozvole)</db:sql>
+                                    <db:input-parameters><![CDATA[#[{
+	"username": vars.object.username,
+	"password": vars.object.password,
+	"email": vars.object.email,
+	"ime": vars.object.ime,
+	"prezime": vars.object.prezime,
+	"broj_dozvole": vars.object.brojDozvole
+}]]]></db:input-parameters>
+                                </db:insert>
+                                <ee:transform doc:name="Transform Message" doc:id="519bfa78-81d7-4426-91a6-a6135adf0648">
+                                    <ee:message>
+                                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 200,
+	"message": "Successfully inserted farmaceut"
+}]]></ee:set-payload>
+                                    </ee:message>
+                                    <ee:variables>
+                                        <ee:set-variable variableName="httpStatus"><![CDATA[200]]></ee:set-variable>
+                                    </ee:variables>
+                                </ee:transform>
+                            </otherwise>
+                        </choice>
+                    </otherwise>
+                </choice>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="27bd7e7a-dc01-4552-ad03-321425c8fbaa" type="FRM:POST_EXISTING_USERNAME">
+                <ee:transform doc:name="Transform Message" doc:id="72837a48-6d2d-4685-86a8-601a707fefd5">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Username is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="f2dfbe26-f288-4348-aef9-80c63f1899ff" type="FRM:POST_EXISTING_EMAIL">
+                <ee:transform doc:name="Transform Message" doc:id="8130fdce-8564-417e-8a64-c91bf44c6ba9">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Email is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c2203ebc-44c8-4d69-8218-f80831fa7b8d" type="FRM:POST_EXISTING_BROJDOZVOLE">
+                <ee:transform doc:name="Transform Message" doc:id="36d40334-3e09-46e7-bc4b-116b62212d94">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Broj dozvole is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\kategorije:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\kategorije:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var insertedObject" doc:id="dc2f45c4-1690-453b-b192-7bbeae97093d" variableName="object" />
+        <set-variable value="#[payload.naziv]" doc:name="var naziv" doc:id="c83d9c2c-7daa-4201-8a6c-624a3fb8ad84" variableName="naziv" />
+        <flow-ref doc:name="Flow Reference" doc:id="7118ee4a-0ecf-4775-b5f3-c417eb66adcb" name="findKategorijaByNaziv" />
+        <choice doc:name="Choice" doc:id="0bbdf44f-9d11-45ee-ba2f-c4e2a9209697">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <raise-error doc:name="Raise error" doc:id="aad002ee-5a3d-4046-8b4a-d6aff2694f5c" type="KTG:POST_EXISTING_NAZIV" />
+            </when>
+            <otherwise>
+                <db:insert doc:name="Insert" doc:id="99d1b70c-4909-4d0f-9875-9a5c657dbfd8" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>insert into kategorije (naziv, opis) values (:naziv, :opis)</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"naziv": vars.object.naziv,
+	"opis": vars.object.opis
+}]]]></db:input-parameters>
+                </db:insert>
+                <ee:transform doc:name="Transform Message" doc:id="9d115d9f-4a62-4ac4-922f-498e996dca3f">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 200,
+	"message": "Successfully inserted kategorija"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0bd1c725-95d8-4319-93c4-43461370f013" type="KTG:POST_EXISTING_NAZIV">
+                <ee:transform doc:name="Transform Message" doc:id="19f5e9e7-6631-475e-9adf-26efd8745599">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Naziv is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\lijekovi:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\lijekovi:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var insertedObject" doc:id="4a751ab0-bbe1-419e-b878-c39e76fc1702" variableName="object" />
+        <set-variable value="#[payload.naziv]" doc:name="var naziv" doc:id="09bc125e-26e9-4b0c-8ffd-01f4b46160b3" variableName="naziv" />
+        <flow-ref doc:name="findLijekByNaziv" doc:id="d801b669-d01c-4bc6-abbc-d72725453db3" name="findLijekByNaziv" />
+        <choice doc:name="Choice" doc:id="8993f9f1-a195-4aec-b66c-e2e83e55fe17">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <raise-error doc:name="Raise error" doc:id="458271a4-9c31-4ce1-8ac0-3054911c5cb5" type="LK:POST_EXISTING_NAZIV" />
+            </when>
+            <otherwise>
+                <db:insert doc:name="Insert" doc:id="2ee239dd-4e78-4403-9499-529ea8e48bb9" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>insert into lijekovi(naziv, opis, cijena, kolicina, kategorija) values (:naziv,:opis, :cijena, :kolicina, :kategorija)</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"naziv": vars.object.naziv,
+	"opis": vars.object.opis,
+	"cijena": vars.object.cijena,
+	"kolicina": vars.object.kolicina,
+	"kategorija": vars.object.kategorija
+}]]]></db:input-parameters>
+                </db:insert>
+                <ee:transform doc:name="Transform Message" doc:id="9209e913-69b5-4697-9c13-fe7e643050ca">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 201,
+	"message": "Successfully inserted lijek"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c6a1beeb-1ffa-4fdc-8ad3-45393ebd4491" type="LK:POST_EXISTING_NAZIV">
+                <ee:transform doc:name="Transform Message" doc:id="88784ece-ef00-4ea6-b867-c4775256c9c4">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Naziv is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\naciniPlacanja:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\naciniPlacanja:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var insertedObject" doc:id="9c6792cc-9d9a-46f3-a6d3-a7bdaf6e5f93" variableName="object" />
+        <set-variable value="#[payload.naziv]" doc:name="var naziv" doc:id="bbf0c65d-8a09-44d0-9432-ba774ce41151" variableName="naziv" />
+        <flow-ref doc:name="findNacinPlacanjaByNaziv" doc:id="b512dd35-d4a4-427b-9a3f-8ee3306b9bf0" name="findNacinPlacanjaByNaziv" />
+        <choice doc:name="Choice" doc:id="629e0c4e-8069-42de-b3ed-dbbad0a9c1de">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <raise-error doc:name="Raise error" doc:id="f8908c8f-bcc2-4da1-9b28-7f338be6b657" type="NP:PUT_EXISTING_NAZIV" />
+            </when>
+            <otherwise>
+                <db:insert doc:name="Insert" doc:id="8af2b35f-1118-49f7-bf21-0eb2905b36ab" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>insert into nacini_placanja (naziv, opis) values (:naziv, :opis)</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"naziv":vars.object.naziv,
+	"opis": vars.object.opis
+}]]]></db:input-parameters>
+                </db:insert>
+                <ee:transform doc:name="Transform Message" doc:id="6a36c93e-33ac-4475-a850-5fb47f038e0e">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 201,
+	"message": "Successfully inserted nacin placanja"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="be769cea-d407-41ab-a105-ef402ce9d22a" type="NP:PUT_EXISTING_NAZIV">
+                <ee:transform doc:name="Transform Message" doc:id="7286f20c-85c8-42a2-b6fc-93fd569d05a7">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message":"Naziv is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\pacijenti:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\pacijenti:application\json:erp-apoteka-api-config" />
+        <set-variable value="#[payload]" doc:name="var insertedObject" doc:id="feb517be-d0f5-4f42-bc50-4c692ba92b16" variableName="object" />
+        <set-variable value="#[payload.sifraZdravstvene]" doc:name="Set Variable" doc:id="8e5e7b69-9a63-45f3-93ce-62eaa5c7c1df" variableName="sifraZdravstvene" />
+        <flow-ref doc:name="Flow Reference" doc:id="1f21784b-0a11-41b8-96f9-12c5d0068f25" name="findPacijentBySifraZdravstvene" />
+        <choice doc:name="Choice" doc:id="5b2b9784-6efe-4d4c-b4db-ee907d8551ab">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <raise-error doc:name="Raise error" doc:id="7345f1a9-18b3-46e2-baa9-aa82b22a071d" type="PC:POST_EXISTING_SIFRAZDRAVSTVENE" />
+            </when>
+            <otherwise>
+                <db:insert doc:name="Insert" doc:id="57ddb5c2-7993-40bd-90bd-395c1acd417e" config-ref="Erp_Apoteka_Database_Config">
+                    <db:sql>insert into pacijenti(ime, prezime, sifra_zdravstvene, datum_rodjenja) values (:ime, :prezime,:sifraZdravstvene,:datumRodjenja)</db:sql>
+                    <db:input-parameters><![CDATA[#[{
+	"ime": vars.object.ime,
+	"prezime": vars.object.prezime,
+	"sifraZdravstvene": vars.object.sifraZdravstvene,
+	"datumRodjenja": vars.object.datumRodjenja,
+}]]]></db:input-parameters>
+                </db:insert>
+                <ee:transform doc:name="Transform Message" doc:id="3b35258b-75c5-4793-bc68-7a92f5f776c0">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 201,
+	"message": "Successfully created pacijent"
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0cb4f818-66c9-4318-a4ad-54593abfa219" type="PC:POST_EXISTING_SIFRAZDRAVSTVENE">
+                <ee:transform doc:name="Transform Message" doc:id="bb9c944f-45b6-4674-b1fd-0190ab7133de">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 409,
+	"message": "Sifra zdravstvene is already taken"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[409]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\racuni:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\racuni:application\json:erp-apoteka-api-config" />
+        <try doc:name="Try" doc:id="e5dfff04-6807-4d2b-9a2c-9a0a630c1cc8">
+            <set-variable value="#[{
+	datum: payload.datum,
+	suma: payload.suma,
+	nacinPlacanja: payload.nacinPlacanja,
+	racunId: payload.racunId,
+	farmaceut: payload.farmaceut,
+	recept: payload.recept,
+}]" doc:name="Set Variable" doc:id="4ae20082-f789-4eae-9bb8-c0ea55fb6773" variableName="object"/>
+			<db:insert doc:name="Insert" doc:id="d6d69351-a3c4-44aa-9578-274904feacd7" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>insert into racuni(datum,  suma, nacin_placanja, farmaceut, recept)  values (:datum, :suma, :nacinPlacanja, :farmaceut, :recept)</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"datum":payload.datum,
+	"suma": payload.suma,
+	"nacinPlacanja": payload.nacinPlacanja,
+	"farmaceut": payload.farmaceut,
+	"recept": payload.recept
+}]]]></db:input-parameters>
+            </db:insert>
+			<ee:transform doc:name="Transform Message" doc:id="d4f67068-cf5a-46cc-8186-18de85c34daf">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 201,
+	"message": "Successfully inserted racun"
+}]]></ee:set-payload>
+                </ee:message>
+            </ee:transform>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="30f59e9d-2fa7-488f-abb4-acfaf1667c2d" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="cb2c924a-f718-43f2-bcae-4000c00f9b37">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </flow>
+    <flow name="post:\recepti:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\recepti:application\json:erp-apoteka-api-config" />
+        <try doc:name="Try" doc:id="89c1406a-ebcd-4583-8f2a-329593df92c2">
+            <db:insert doc:name="Insert" doc:id="23f28077-a800-4afb-8361-ab088829a9fa" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>insert into recepti(naziv_ustanove, sadrzaj, datum_izdavanja, pacijent) values (:nazivUstanove, :sadrzaj, :datumIzdavanja, :pacijent)</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"nazivUstanove": payload.nazivUstanove,
+	"datumIzdavanja": payload.datumIzdavanja,
+	"sadrzaj": payload.sadrzaj,
+	"pacijent": payload.pacijentId
+}]]]></db:input-parameters>
+            </db:insert>
+            <ee:transform doc:name="Transform Message" doc:id="75dce773-6726-4714-83a1-163d98a0c1bb">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 201,
+	"message": "Successfully created recept"
+}]]></ee:set-payload>
+                </ee:message>
+            </ee:transform>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="af8b132f-336a-4956-9767-7964fcde0c74" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="a194c3ee-74fa-4d43-a726-180b13046441">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </flow>
+    <flow name="put:\prodaje:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="put:\prodaje:application\json:erp-apoteka-api-config" />
+        <try doc:name="Try" doc:id="90868453-b22c-4c89-a21a-94a6e2c3ffa4">
+            <db:update doc:name="Update" doc:id="80f9e6d1-fa29-44bd-900a-b31dcc9894e3" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>update prodaje set racun=:racun, lijek=:lijek where prodaja_id=:prodajaId</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"prodajaId": payload.prodajaId,
+	"racun": payload.racun,
+	"lijek": payload.lijek,
+}]]]></db:input-parameters>
+            </db:update>
+            <ee:transform doc:name="Transform Message" doc:id="e357d281-51f7-48eb-8338-8ae9e96643d4">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+                </ee:message>
+            </ee:transform>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="493c8e91-77e3-4c2c-b169-e0f2a0492915" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="e266e739-4c66-42d0-9b35-202d6ec07907">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </flow>
+    <flow name="post:\prodaje:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\prodaje:application\json:erp-apoteka-api-config" />
+        <try doc:name="Try" doc:id="f70ddb1a-0e85-45e0-a278-6859302f35f7">
+            <db:insert doc:name="Insert" doc:id="ae3d303d-90ef-4558-b283-3f23842d8b41" config-ref="Erp_Apoteka_Database_Config">
+                <db:sql>insert into prodaje (racun, lijek) values (:racun, :lijek)</db:sql>
+                <db:input-parameters><![CDATA[#[{
+	"racun":payload.racun,
+	"lijek": payload.lijek
+}]]]></db:input-parameters>
+            </db:insert>
+            <ee:transform doc:name="Transform Message" doc:id="3ac498da-86a7-4c62-8ebb-2711d7cb432a">
+                <ee:message>
+                    <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"statu": 201,
+	"message": "Successfully created prodaja"
+}]]></ee:set-payload>
+                </ee:message>
+            </ee:transform>
+            <error-handler>
+                <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0baaee44-ce65-4152-8f00-db2cfa873d2e" type="ANY">
+                    <ee:transform doc:name="Transform Message" doc:id="5203b147-7dfb-4e05-96c1-d60a59ee0c67">
+                        <ee:message>
+                            <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": error.description
+}]]></ee:set-payload>
+                        </ee:message>
+                    </ee:transform>
+                </on-error-propagate>
+            </error-handler>
+        </try>
+    </flow>
+    <flow name="delete:\prodaje\(racunId):erp-apoteka-api-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="racunId">attributes.uriParams.'racunId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <logger level="INFO" message="delete:\prodaje\(racunId):erp-apoteka-api-config" />
+    </flow>
+    <flow name="post:\farmaceuti\login:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\farmaceuti\login:application\json:erp-apoteka-api-config" />
+        <db:select doc:name="Select" doc:id="e3605f0a-55b0-4bd9-a828-2eb3bcd3ceb9" config-ref="Erp_Apoteka_Database_Config">
+            <db:sql>select * from farmaceuti where username=:username and password=:password</db:sql>
+            <db:input-parameters><![CDATA[#[{
+	"username": payload.username,
+	"password": payload.password
+}]]]></db:input-parameters>
+        </db:select>
+        <choice doc:name="Choice" doc:id="2762ed35-6dc9-421b-aa9c-4309df03c7a6">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="Transform Message" doc:id="53587f16-a46b-47d5-b8ca-3cb237187fb4">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	ime: payload[0].ime,
+	prezime: payload[0].prezime default "",
+	password: payload[0].password,
+	farmaceutId: payload[0].farmaceut_id,
+	email: payload[0].email,
+	username: payload[0].username,
+	brojDozvole: payload[0].broj_dozvole
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="88a1e86a-8899-4b1e-82f3-d6a2498589af" type="FRM:LOGIN_ERROR" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2517d243-d2e1-47bd-9f10-720cf6628790" type="FRM:LOGIN_ERROR">
+                <ee:transform doc:name="Transform Message" doc:id="a31f4d4e-1b37-4e4c-ac91-7244a18ea47b">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Wrong email or password"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="erp-apoteka-apiFlow" doc:id="1119e155-9636-40eb-a411-0e8f740bc413">
+        <ee:transform doc:name="Transform Message" doc:id="7b15fb85-d5b8-4fcb-ae7a-55702b0e6aa3">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\admini\login:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\admini\login:application\json:erp-apoteka-api-config" />
+        <db:select doc:name="Select" doc:id="ba6ecc27-542e-4fcf-b213-b8118b7fb50c" config-ref="Erp_Apoteka_Database_Config">
+            <db:sql>select * from admini where username=:username and password=:password</db:sql>
+            <db:input-parameters><![CDATA[#[{
+	"username": attributes.queryParams.username,
+	"password": attributes.queryParams.password,
+}]]]></db:input-parameters>
+        </db:select>
+        <choice doc:name="Choice" doc:id="aeb467b0-c76f-4234-9c28-1c6ec02b814c">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="Transform Message" doc:id="ce0ac831-c7d8-48db-a6e4-4d9cd134c09f">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	password: payload[0].password,
+	adminId: payload[0].admin_id,
+	email: payload[0].email,
+	username: payload[0].username
+}]]></ee:set-payload>
+                    </ee:message>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="fd4515db-1e7a-476f-bc18-e5a7cb2eba2a" type="ADM:LOGINERROR2" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ee297fb8-cb7d-4bd2-aafb-10dc88b2dae1" type="ADM:LOGINERROR2">
+                <ee:transform doc:name="Transform Message" doc:id="e3322739-22f7-4ec9-b1c1-ef82bc0b5e54">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Wrong email or password"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\admini\login:application\json:erp-apoteka-api-config">
+        <logger level="INFO" message="post:\admini\login:application\json:erp-apoteka-api-config" />
+        <db:select doc:name="Select" doc:id="529f4ec9-a985-4e7c-9190-0973a68a41ef" config-ref="Erp_Apoteka_Database_Config">
+            <db:sql>select * from admini where username=:username and password=:password</db:sql>
+            <db:input-parameters><![CDATA[#[{
+	"username":payload.username,
+	"password": payload.password
+}]]]></db:input-parameters>
+        </db:select>
+        <choice doc:name="Choice" doc:id="6d224251-3b0a-4174-ab79-913475d1cbb4">
+            <when expression="#[sizeOf(payload) &gt; 0]">
+                <ee:transform doc:name="Transform Message" doc:id="fd5baea5-9612-48f0-8406-32fed05d42c2">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	password: payload[0].password,
+	adminId: payload[0].admin_id,
+	email: payload[0].email,
+	username: payload[0].username
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[200]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </when>
+            <otherwise>
+                <raise-error doc:name="Raise error" doc:id="103bbbd3-d88e-4530-b2f4-1aca7c412cfd" type="ADM:LOGIN_ERROR" />
+            </otherwise>
+        </choice>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="fd8b3a59-500f-4620-9cd0-7dfd1ef48b1c" type="ADM:LOGIN_ERROR">
+                <ee:transform doc:name="Transform Message" doc:id="0990fb7c-cde4-4b41-ac5a-b98b933042ec">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": 404,
+	"message": "Wrong email or password"
+}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus"><![CDATA[404]]></ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\racuni\poslednji:erp-apoteka-api-config">
+        <logger level="INFO" message="get:\racuni\poslednji:erp-apoteka-api-config" />
+		<db:select doc:name="Select" doc:id="a6808409-6204-42d7-8e65-8d5a1a647dba" config-ref="Erp_Apoteka_Database_Config">
+			<db:sql >select * from racuni order by racun_id desc limit 1;</db:sql>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="06d15958-433c-4fc6-a1fb-b57b7b7052c3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"racunId": payload[0].racun_id,
+	farmaceut: payload[0].farmaceut,
+	recept: payload[0].recept,
+	"datum": payload[0].datum,
+	suma: payload[0].suma,
+	nacinPlacanja: payload[0].nacin_placanja
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+    </flow>
+</mule>

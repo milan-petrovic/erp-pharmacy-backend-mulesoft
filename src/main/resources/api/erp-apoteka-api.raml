@@ -1,0 +1,510 @@
+#%RAML 1.0
+types:
+  Admin: !include admin.raml
+  Kategorija: !include kategorija.raml
+  NacinPlacanja: !include nacinPlacanja.raml
+  Pacijent: !include pacijent.raml
+  Lijek: !include lijek.raml
+  Farmaceut: !include farmaceut.raml
+  Recept: !include recept.raml
+  Prodaja: !include prodaja.raml
+  Racun: !include racuni.raml
+  Login: !include login.raml
+title: Apoteka REST API
+baseUri: https://anypoint.mulesoft.com/mocking/api/v1/links/c5aa331a-5e52-41db-9dab-3fafd6f42b71/
+description: REST API informacionog sistema apoteke
+mediaType:
+  - application/json
+version: "1.0"
+protocols:
+  - HTTP
+  - HTTPS
+/admini:
+  get:
+    displayName: GET /admini
+    description: Endpoint za iscitavanje svih admina.
+    responses:
+      "200":
+        body:
+          application/json:
+            items:
+              type: Admin
+  post:
+    displayName: POST /admini
+    description: Endpoint za kreiranje novog admina.
+    body:
+      type: Admin
+    responses:
+      "201":
+        body:
+          type: Admin
+  put:
+    displayName: PUT /admini
+    description: Endpoint za azurirane admina.
+    body:
+      type: Admin
+    responses:
+      "204": {}
+/admini/login: 
+  post:
+    displayName: POST /admini/login
+    description: Endpoint za prijavljivanje admina.
+    body:
+      type: Login
+    responses:
+      "200":
+        body:
+          type: Admin
+/farmaceuti:
+  get:
+    displayName: GET /farmaceuti
+    description: Endpoint za iscitavanje svih farmaceuta.
+    responses:
+      "200":
+        body:
+          items:
+            type: Farmaceut
+  post:
+    displayName: POST /farmaceuti
+    description: Endpoint za kreiranje novog farmaceuta.
+    body:
+      type: Farmaceut
+    responses:
+      "201":
+        body:
+          type: Admin
+  put:
+    displayName: PUT /farmaceut
+    description: Endpoint za azuriranje farmaceuta.
+    body:
+      type: Farmaceut
+    responses:
+      "204": {}
+/admini/{adminId}:
+  get:
+    displayName: GET /admini/adminId
+    description: Endpoint za iscitavanja admina po id.
+    responses:
+      "200":
+        body:
+          type: Admin
+  delete:
+    displayName: DELETE /admin/adminId
+    description: Endpoint za brisanje admina po idu.
+    responses:
+      "202": {}
+  uriParameters:
+    adminId:
+      example: 1
+      type: number
+      format: int
+/kategorije:
+  get:
+    displayName: GET /kategorije
+    description: Endpoint za iscitavanje kategorija.
+    responses:
+      "200":
+        body:
+          application/json:
+            items:
+              type: Kategorija
+  post:
+    displayName: POST /kategorije
+    description: Endpoint za kreiranje nove kategorije.
+    body:
+      type: Kategorija
+    responses:
+      "201":
+        body:
+          type: Kategorija
+  put:
+    displayName: PUT /kategorije
+    description: Endpoint za azuriranje kategorije.
+    body:
+      type: Kategorija
+    responses:
+      "204": {}
+/lijekovi:
+  get:
+    displayName: GET /lijekovi
+    description: Endpoint za iscitavanje lijekova.
+    responses:
+      "200":
+        body:
+          items:
+            type: Lijek
+  post:
+    displayName: POST /lijekovi
+    description: Endpoint za kreiranje novog lijeka.
+    body:
+      type: Lijek
+    responses:
+      "201":
+        body:
+          type: Lijek
+  put:
+    displayName: PUT /lijekovi
+    description: Endoint za azuriranje lijeka.
+    body:
+      type: Lijek
+    responses:
+      "204": {}
+/naciniPlacanja:
+  get:
+    displayName: GET /naciniPlacanja
+    description: Endpoint za iscitavanje nacina placanja.
+    responses:
+      "200":
+        body:
+          items:
+            type: NacinPlacanja
+  post:
+    displayName: POST /naciniPlacanja
+    description: Endpoint za kreiranje novog nacina placanja.
+    body:
+      type: NacinPlacanja
+    responses:
+      "201":
+        body:
+          type: NacinPlacanja
+  put:
+    displayName: PUT /naciniPlacanja
+    description: Endpoint za azuriranje nacina placanja.
+    body:
+      type: NacinPlacanja
+    responses:
+      "204": {}
+/farmaceuti/login: 
+  post:
+    displayName: POST /farmaceut/login
+    description: Endpoint za prijavljivanje farmaceuta.
+    body:
+      type: Login
+    responses:
+      "200":
+        body:
+          type: Farmaceut
+/farmaceuti/{farmaceutId}:
+  get:
+    displayName: /GET farmaceuti/farmaceutId
+    description: Endpoint za iscitavanje farmaceuta po id.
+    responses:
+      "200":
+        body:
+          type: Farmaceut
+  delete:
+    displayName: DELETE /farmaceuti
+    description: Endpoint za brisanje farmaceuta po id.
+    responses:
+      "202": {}
+  uriParameters:
+    farmaceutId:
+      example: 1
+      type: number
+      format: int
+/kategorije/{kategorijaId}:
+  get:
+    displayName: /GET kategorije/kategorijaId
+    description: Endpoint za iscitavanje kategorije po id.
+    responses:
+      "200":
+        body:
+          type: Kategorija
+  delete:
+    displayName: DELETE /kategorije/kategorijaId
+    description: Endpoint za brisanje kategorije po id.
+    responses:
+      "202": {}
+  uriParameters:
+    kategorijaId:
+      example: 1
+      type: number
+      format: int
+/lijekovi/pretraga:
+  get:
+    displayName: GET /lijeovi/pretraga
+    responses:
+      "200":
+        body:
+          items:
+            type: Lijek
+    description: Endpoint za pretragu lijekova po nazivu lijeka ili nazivu kategorije.
+    queryParameters:
+      nazivLijeka?:
+        example: Example
+        type: string
+      nazivKategorije?:
+        example: Example
+        type: string
+/lijekovi/{lijekId}:
+  get:
+    displayName: GET /lijekovi/lijekId
+    description: Endpoint za iscitavanje lijeka po id.
+    responses:
+      "200":
+        body:
+          type: Lijek
+  delete:
+    displayName: DELETE /lijekovi/lijekId
+    description: Endpoint za brisanje lijeka po id.
+    responses:
+      "202": {}
+  uriParameters:
+    lijekId:
+      example: 1
+      type: number
+      format: int
+/pacijenti:
+  get:
+    displayName: GET /pacijenti
+    description: Endpoint za iscitavanje svih pacijenata.
+    responses:
+      "200":
+        body:
+          items:
+            type: Pacijent
+  post:
+    displayName: POST /pacijenti
+    description: Endpoint za kreirane novog pacjenta.
+    body:
+      type: Pacijent
+    responses:
+      "201":
+        body:
+          type: Pacijent
+  put:
+    displayName: PUT /pacijenti
+    description: Endpoint za azuriranje pacijenta.
+    body:
+      type: Pacijent
+    responses:
+      "204": {}
+/naciniPlacanja/{nacinPlacanjaId}:
+  get:
+    displayName: GET /naciniPlacanja/nacinPlacanjaId
+    description: Endpoint za iscitavanje nacina placanja po id.
+    responses:
+      "200":
+        body:
+          type: NacinPlacanja
+  delete:
+    displayName: DELETE /nacinPlacanja/nacinPlacanjaId
+    description: Endpoint za brisanje nacina placanja po id.
+    responses:
+      "202": {}
+  uriParameters:
+    nacinPlacanjaId:
+      example: 1
+      type: number
+      format: int
+/pacijenti/pretraga:
+  get:
+    displayName: GET /pacijenti/pretraga
+    description: Endpoint za pretragu pacijenata po nazivu i sifri zdravstvene.
+    queryParameters:
+      ime?:
+        example: Example
+        type: string
+      prezime?:
+        example: Example
+        type: string
+      sifraZdravstvene?:
+        example: 1
+        type: number
+        format: int
+    responses:
+      "200":
+        body:
+          items:
+            type: Pacijent
+/pacijenti/{pacijentId}:
+  get:
+    displayName: GET /pacijenti/pacijentId
+    description: Endpoint za iscitavanje pacijenta po idu.
+    responses:
+      "200":
+        body:
+          type: Pacijent
+  delete:
+    displayName: DELETE /pacijenti/pacijentId
+    description: Endpoint za brisanje pacijenta po id.
+    responses:
+      "202": {}
+  uriParameters:
+    pacijentId:
+      example: 1
+      type: number
+      format: int
+/prodaje/{racunId}:
+  get:
+    displayName: GET /prodaje/prodajaId
+    description: Endpoint za iscitavanje prodaje po id
+    responses:
+      "200":
+        body:
+          items:
+            type: Prodaja
+  delete:
+    displayName: DELETE /prodaje/prodajaId
+    description: Endpoint za brisanje prodaje po id.
+    responses:
+      "202": {}
+  uriParameters:
+    racunId:
+      example: 1
+      type: number
+      format: int
+/prodaje:
+  post:
+    displayName: /POST prodaje
+    description: Endpoint za kreiranje nove prodaje.
+    body:
+      type: Prodaja
+    responses:
+      "201":
+        body:
+          type: Prodaja
+    securedBy: []
+  put:
+    displayName: PUT /prodaje
+    description: Endpoint za azuriranje prodaje.
+    body:
+      application/json:
+        type: Prodaja
+    responses:
+      "204": {}
+    securedBy: []
+/racuni:
+  get:
+    displayName: GET /racuni
+    description: Endpoint za iscitavanje racuna
+    responses:
+      "200":
+        body:
+          application/json:
+            items:
+              type: Racun
+  post:
+    displayName: POST /racuni
+    description: Endpoint za kreranje novog racuna
+    body:
+      type: Racun
+    responses:
+      "201":
+        body:
+          type: Racun
+  put:
+    displayName: PUT /racuni
+    description: Endpoint za azuriranje racuna.
+    body:
+      type: Racun
+    responses:
+      "204": {}
+/racuni/poslednji:
+  get:
+    displayName: GET /racuni/poslednji
+    description: Endpoint za iscitavanje poslednjeg kreiranog racuna.
+    responses:
+      "200":
+        body:
+          type: Racun
+/recepti:
+  get:
+    displayName: GET /recepti
+    description: Endpoint za iscitavanje recepata.
+    body: {}
+    responses:
+      "200":
+        body:
+          items:
+            type: Recept
+    securedBy: []
+  post:
+    displayName: POST /recepti
+    description: Enpoint za kreiranje novog recepta.
+    body:
+      type: Recept
+    responses:
+      "201":
+        body:
+          type: Recept
+    securedBy: []
+  put:
+    displayName: PUT /recepti
+    description: Endpoint za azuriranje recepta.
+    body:
+      type: Recept
+    responses:
+      "204": {}
+    securedBy: []
+/racuni/pretraga:
+  get:
+    displayName: GET /racuni/pretraga
+    description: Endpoint za pretragu racuna po datumu, imenu i prezimenu farmaceuta
+    queryParameters:
+      datum?:
+        example: 2020-05-06T23:36:05
+        type: datetime-only
+      imeFarmaceuta?:
+        example: Example
+        type: string
+      prezimeFarmaceuta?:
+        example: Example
+        type: string
+    responses:
+      "200":
+        body:
+          items:
+            type: Racun
+/racuni/{racunId}:
+  get:
+    displayName: GET /racuni/racunId
+    description: Endpoint za iscitavanje racuna po id.
+    responses:
+      "200":
+        body:
+          type: Racun
+  delete:
+    displayName: DELETE /racuni/racunId
+    description: Endpoint za brisanje racuna po id.
+    responses:
+      "202": {}
+  uriParameters:
+    racunId:
+      example: 1
+      type: number
+      format: int
+/recepti/pretraga:
+  get:
+    displayName: GET /recepti/pretraga
+    description: Endpoint za pretrazivanje recepata po imenu i prezimenu pacijenta
+    queryParameters:
+      ime:
+        example: Example
+        type: string
+      prezime:
+        example: Example
+        type: string
+    responses:
+      "200":
+        body:
+          items:
+            type: Recept
+/recepti/{receptId}:
+  get:
+    displayName: GET /recepti/receptId
+    description: Endpoint za iscitavanje recepta po id.
+    responses:
+      "200":
+        body:
+          type: Recept
+  delete:
+    displayName: DELETE /recepti/receptId
+    description: Endpoint za brisanje recepta po id.
+    responses:
+      "202": {}
+  uriParameters:
+    receptId:
+      example: 1
+      type: number
+      format: int
